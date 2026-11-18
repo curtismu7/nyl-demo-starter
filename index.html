@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NYL Demo Starter — MCP test items #28, #29, #30</title>
+<style>
+  :root { --red:#d20e0f; --text:#1c222b; --muted:#5a6472; --border:#e3e6ea; --bg:#f7f8fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Montserrat',-apple-system,Helvetica,Arial,sans-serif; color:var(--text); background:var(--bg); }
+  header { background:#16181f; color:#fff; padding:28px 32px 22px; border-bottom:4px solid var(--red); }
+  header h1 { margin:0 0 6px; font-size:1.5rem; }
+  header p { margin:0; color:#aab2bd; font-size:.9rem; }
+  main { max-width:960px; margin:0 auto; padding:28px 20px 60px; }
+  .card { background:#fff; border:1px solid var(--border); border-top:3px solid var(--red); border-radius:8px; padding:20px 22px; margin-bottom:20px; }
+  .card h2 { margin:0 0 4px; font-size:1.1rem; }
+  .num { display:inline-block; background:var(--red); color:#fff; border-radius:4px; padding:2px 8px; font-size:.8rem; margin-right:8px; vertical-align:middle; }
+  .req { color:var(--muted); font-size:.92rem; margin:6px 0 14px; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+  a { color:var(--red); text-decoration:none; word-break:break-all; }
+  a:hover { text-decoration:underline; }
+  .note { font-size:.82rem; color:var(--muted); margin-top:12px; }
+  .badge { display:inline-block; font-size:.72rem; font-weight:700; border-radius:10px; padding:2px 8px; margin-left:6px; vertical-align:middle; }
+  .mock { background:#e8f4ec; color:#1f7a4d; }
+  .owner { background:#fdeaea; color:var(--red); }
+  code { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:.82rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NYL Demo Starter</h1>
+  <p>Ping MCP test items #28, #29, #30 &mdash; request, live demo, and Privilege setup docs</p>
+</header>
+<main>
+
+  <div class="card">
+    <h2><span class="num">#28</span>Agent-to-agent (A2A) calls</h2>
+    <p class="req"><b>Request:</b> Configure two authorized test agents to communicate through the supported A2A path &mdash; and show an unauthorized agent being refused.</p>
+    <table>
+      <tr><th>Demo</th><th>Link</th><th>Status</th></tr>
+      <tr>
+        <td>A2A Lab &mdash; nested act chain: two exchanges, registered specialist permits, rogue specialist denied</td>
+        <td><a href="https://local.ping-devops.com:8443/a2a-lab/">local.ping-devops.com:8443/a2a-lab/</a></td>
+        <td><span class="badge mock">MOCK</span></td>
+      </tr>
+      <tr>
+        <td>Privilege A2A demo &mdash; main agent calls a worker agent through the real gateway, each agent with its own key</td>
+        <td><a href="https://local.ping-devops.com:8443/privilege-a2a/">local.ping-devops.com:8443/privilege-a2a/</a></td>
+        <td><span class="badge owner">OWNER SETUP</span></td>
+      </tr>
+    </table>
+    <p class="note"><b>Privilege setup docs:</b> <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
+      <a href="https://github.com/curtismu7/privilege-a2a-anthropic-demo-LAB#set-up-on-privilege-in-order">&ldquo;Set up on Privilege, in order&rdquo;</a>
+      &mdash; register <code>workeragentdemo</code> (Remote Agent) + <code>mcpdemo</code> (MCP) apps, create the two agents in the Agent Registry with different custodians, paste the agent keys into the lab <code>.env</code>.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">#29</span>Human-in-the-loop approval</h2>
+    <p class="req"><b>Request:</b> Configure a protected action requiring approval; test the approve, deny and timeout paths.</p>
+    <table>
+      <tr><th>Demo</th><th>Link</th><th>Status</th></tr>
+      <tr>
+        <td>Privilege demo LAB &mdash; hold / approve / deny / <b>let it expire</b> (new knob, no waiting)</td>
+        <td><a href="https://local.ping-devops.com:8443/privilege-demo/">local.ping-devops.com:8443/privilege-demo/</a></td>
+        <td><span class="badge mock">MOCK</span></td>
+      </tr>
+      <tr>
+        <td>CIBA HITL LAB &mdash; 24-step flow: deny with identifier, approve, replay permits, expire now (new)</td>
+        <td><a href="https://local.ping-devops.com:8443/ciba-hitl-lab/">local.ping-devops.com:8443/ciba-hitl-lab/</a></td>
+        <td><span class="badge mock">MOCK</span></td>
+      </tr>
+      <tr>
+        <td>HITL MFA LAB &mdash; CIBA with expiry, mock</td>
+        <td><a href="https://local.ping-devops.com:8443/hitl-mfa-lab/">local.ping-devops.com:8443/hitl-mfa-lab/</a></td>
+        <td><span class="badge mock">MOCK</span></td>
+      </tr>
+      <tr>
+        <td>Real gateway HITL with PingID push / passcode on the owner's phone</td>
+        <td>follow the setup doc on tenant <code>0428ba4f</code></td>
+        <td><span class="badge owner">OWNER + PHONE</span></td>
+      </tr>
+    </table>
+    <p class="note"><b>Privilege setup docs:</b> <a href="file:///Users/cmuir/Development/PINGID-MCP-HITL-SETUP.md"><code>PINGID-MCP-HITL-SETUP.md</code></a>
+      &mdash; pair PingID for the approver, turn MFA on for the tenant, create the human-approval AI policy, test end to end (approve, reject, let one expire).</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">#30</span>SPIFFE agent identity</h2>
+    <p class="req"><b>Request:</b> Present a valid test SPIFFE identity, then a mismatched or untrusted identity, to the gateway.</p>
+    <table>
+      <tr><th>Demo</th><th>Link</th><th>Status</th></tr>
+      <tr>
+        <td>Federated Identity LAB &mdash; SPIFFE presets: right ID, wrong workload, untrusted issuer (new negative presets; Live mode for real RS256 verification)</td>
+        <td><a href="https://local.ping-devops.com:8443/federated-identity-lab/">local.ping-devops.com:8443/federated-identity-lab/</a></td>
+        <td><span class="badge mock">MOCK/LIVE</span></td>
+      </tr>
+      <tr>
+        <td>Workload Identity LAB &mdash; real PingFederate JWT through the gateway (not SPIFFE-shaped)</td>
+        <td><a href="https://local.ping-devops.com:8443/workload-identity/">local.ping-devops.com:8443/workload-identity/</a></td>
+        <td><span class="badge mock">REAL LEG</span></td>
+      </tr>
+    </table>
+    <p class="note"><b>Privilege setup docs:</b> create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. A real run additionally needs a SPIFFE issuer minting JWT-SVIDs against a public JWKS (planned).</p>
+  </div>
+
+  <div class="card">
+    <h2>Talking points</h2>
+    <p class="req" style="margin-bottom:8px">All local demos are honest simulations &mdash; the banner on every page says so. The real-gateway rows above need owner-only setup (Privilege admin, agent keys, PingID phone) and are the gap between &ldquo;demoed in simulation&rdquo; and &ldquo;run for real&rdquo;.</p>
+    <p class="note">Labs only answer while their container runs (lab-proxy routes by container name). If a link 404s: <code>cd ~/Development/AI-DEMO-Standalone/standalone/&lt;lab&gt; &amp;&amp; docker compose up -d</code>. Open each slug with a trailing slash.</p>
+  </div>
+
+</main>
+</body>
+</html>
