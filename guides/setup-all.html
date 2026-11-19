@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup for #28, #29, #30: Privilege and the other systems</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<header>
+  <h1>Setup for #28, #29 and #30: Privilege, plus what the other systems must provide</h1>
+  <p>One page for all three MCP test items. Each section says what to build in Privilege, what must exist outside Privilege, and how to check it. &middot; <a href="../index.html">back to the demo starter</a></p>
+</header>
+<main>
+
+<section>
+  <h2 style="margin-bottom:6px">At a glance</h2>
+  <table>
+    <tr><th>Item</th><th>Privilege objects</th><th>Needed from other systems</th><th>Status 2026-11-19</th></tr>
+    <tr>
+      <td><b>#28</b> A2A: two agents talk through the gateway, an unauthorized one is refused</td>
+      <td>2 apps (Remote Agent + MCP), 2 or 3 agent keys with different custodians, provider + allowed models</td>
+      <td>An Anthropic API key (held by Privilege); a place the gateway can reach for the worker and MCP server (Kubernetes); the lab on the presenter's machine</td>
+      <td>Real run done</td>
+    </tr>
+    <tr>
+      <td><b>#29</b> Human approval: approve, deny, expire</td>
+      <td>Tenant MFA on, one AI policy with outcome <i>Require human approval</i></td>
+      <td>PingID on the approver's phone, paired to the approver's account; an MCP server behind the gateway; an MCP client</td>
+      <td>Gateway half real; PingID run not done</td>
+    </tr>
+    <tr>
+      <td><b>#30</b> SPIFFE identity: valid, mismatched, untrusted</td>
+      <td>1 Federated Identity, 1 agent key whose custodian is that identity, a grant on an MCP door</td>
+      <td>A SPIFFE issuer that mints JWT-SVIDs and publishes a <b>public JWKS</b> (we used SPIRE in the SE cluster). A PingFederate token is the alternative issuer, see below</td>
+      <td>Real run done</td>
+    </tr>
+  </table>
+</section>
+
+<section>
+  <h2 style="margin-bottom:6px">Before any of the three</h2>
+  <table>
+    <tr><th>Need</th><th>Detail</th></tr>
+    <tr><td>Privilege console admin</td><td>Can create apps, agents, Federated Identities and AI policies on a tenant you own (the MFA setting in #29 is tenant-wide).</td></tr>
+    <tr><td>A gateway</td><td>Our tenant: <code>https://mcpgw.ai-demo.ping-devops.com</code>. Every app is served at <code>/&lt;app&gt;/...</code> on it.</td></tr>
+    <tr><td>Patience for propagation</td><td>Changes to apps, policies and identities take about <b>4 minutes</b> to reach the gateway. Do not re-test sooner and call it a failure.</td></tr>
+    <tr><td>The gateway log</td><td><code>/var/log/procyon/cyonproxy.log</code> in the gateway pod (and the newest rotated file). A bare <code>401</code> or <code>403</code> is only explained there.</td></tr>
+    <tr><td>Never publish</td><td>Agent keys, tokens, client secrets, tenant ids, a person's name in a screenshot.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ #28 ============================ -->
+<section class="step">
+  <h2>#28 Agent-to-agent (A2A) through the gateway</h2>
+  <p>Detail and screenshots: <a href="28-a2a.html">guide #28</a>. Lab: <code>privilege-a2a-anthropic-demo-LAB</code> (the two agents). This is the order that worked.</p>
+
+  <h3>Needed from other systems</h3>
+  <table>
+    <tr><th>System</th><th>What you need from it</th></tr>
+    <tr><td>Anthropic</td><td>A real API key. Privilege holds it server-side as the provider's <i>Real Key</i>; the agents only ever hold Privilege virtual keys. Allowed model IDs must be exact (we used <code>claude-sonnet-4-5</code> and <code>claude-haiku-4-5-20251001</code>).</td></tr>
+    <tr><td>Kubernetes</td><td>A namespace the gateway mesh can reach. Apply the lab's <code>k8s/deployment.yaml</code>: it starts the worker agent (A2A on <code>/a2a</code>) and the MCP server (<code>/mcp</code>). A process on <code>127.0.0.1</code> cannot be reached by a hosted gateway. Ours: namespace <code>ping-devops-cmuir</code>.</td></tr>
+    <tr><td>Presenter's machine</td><td>Docker (OrbStack) and the lab's <code>.env</code>. UI at <code>https://local.ping-devops.com:8443/privilege-a2a/</code>.</td></tr>
+  </table>
+
+  <h3>In Privilege</h3>
+  <ol>
+    <li><b>Provider:</b> add the Anthropic provider with the real key; allow the two models.</li>
+    <li><b>Register two apps</b> (Agentic Apps &rarr; Add Application), on the gateway's mesh cluster:
+      <table>
+        <tr><th></th><th>Worker</th><th>MCP</th></tr>
+        <tr><td>Type</td><td><b>Remote Agent</b></td><td><b>MCP</b></td></tr>
+        <tr><td>Backend</td><td><code>http://workeragentdemo.&lt;ns&gt;.svc.cluster.local</code></td><td><code>http://mcpdemo.&lt;ns&gt;.svc.cluster.local</code></td></tr>
+        <tr><td>Path</td><td><code>/a2a</code></td><td><code>/mcp</code></td></tr>
+        <tr><td>Auth Mode</td><td>None (never <i>Pass Agent Token</i>)</td><td>None</td></tr>
+      </table>
+      Our tenant's worker app is named <code>workeragentdemo2</code>; use whatever name you register and put it in the URLs below.</li>
+    <li><b>Worker agent</b> (Agent Registry &rarr; Add Agent): scopes <code>llm</code> + <code>mcp</code>, one allowed model, MCP Server = the MCP app, then <b>Configure Tools</b> and allow each tool. If the tool list is empty, re-save the MCP app so discovery re-runs with the backend up.</li>
+    <li><b>Main agent</b>: scopes <code>llm</code> + <code>a2a</code>, a different allowed model, Remote Agents = the worker app. Selecting the app is the grant. Give it a <b>different custodian</b> from the worker: remote-agent grants follow the custodian, so one shared custodian lets the agents reach each other's agents.</li>
+    <li><b>Unauthorized agent</b> for the refusal test: scope <code>a2a</code>, no Remote Agent selected, a third custodian. (On our tenant the worker's own key, which has no <code>a2a</code> scope, was used and was refused the same way.)</li>
+    <li><b>Turn on Discover A2A agent card</b> on the worker app once it is running.</li>
+  </ol>
+
+  <h3>Wire the lab to the gateway</h3>
+<pre><code>MAIN_AGENT_KEY=&lt;main agent key, pasted once&gt;
+ANTHROPIC_BASE_URL=https://&lt;gateway&gt;/llm/anthropic
+MAIN_AGENT_MODEL=&lt;model id allowed on the main key&gt;
+WORKER_AGENT_MODEL=&lt;model id allowed on the worker key&gt;
+WORKER_A2A_URL=https://&lt;gateway&gt;/&lt;worker app&gt;/a2a
+WORKER_TRACE_URL=https://&lt;gateway&gt;/&lt;worker app&gt;/trace</code></pre>
+  <ul>
+    <li>The <b>worker key</b> goes in the cluster Secret <code>privilege-a2a-demo</code> (with the main key), not in <code>.env</code>.</li>
+    <li>A doubled paste is refused as <code>invalid virtual key</code>.</li>
+    <li><code>docker-compose.yml</code> must read <code>WORKER_A2A_URL</code> and <code>WORKER_TRACE_URL</code> from <code>.env</code> (fixed in lab commit <code>9552e53</code>); an older compose pins them to the local worker and ignores <code>.env</code>.</li>
+  </ul>
+
+  <h3>Check</h3>
+<pre><code># authorized: answer comes back (SSE, HTTP 200)
+curl -s -X POST https://local.ping-devops.com:8443/privilege-a2a/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Review Carol Nguyen'"'"'s access","sessionId":"check-1"}'
+
+# A2A straight to the gateway: main key 200, key without the a2a scope 403
+curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://&lt;gateway&gt;/&lt;worker app&gt;/a2a/jsonrpc" \
+  -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"role":"user","messageId":"m1","parts":[{"kind":"text","text":"Hello"}]}}}'</code></pre>
+  <p>Optional blocked-path demo: set <code>MCP_DEMO_INJECTION=true</code> and ask <i>"What access does Dave hold?"</i>. The poisoned record should come back blocked and the MCP server log should show no <code>open_ticket</code> call.</p>
+</section>
+
+<!-- ============================ #29 ============================ -->
+<section class="step">
+  <h2>#29 Human-in-the-loop approval</h2>
+  <p>Detail and screenshots: <a href="29-human-approval.html">guide #29</a>. This is the one that needs a person with a phone.</p>
+
+  <h3>Needed from other systems</h3>
+  <table>
+    <tr><th>System</th><th>What you need from it</th></tr>
+    <tr><td>PingID (approver's phone)</td><td>The PingID app paired to the approver's account (Authentication &rarr; My Account &rarr; manage MFA devices). The approver confirms by push ("Are you trying to sign on?", blue button) or the 6-digit passcode. Without a paired phone the approval cannot be confirmed.</td></tr>
+    <tr><td>An MCP server behind the gateway</td><td>Any registered MCP app with at least one tool. The reference used <code>opensearch</code> and the tool <code>IndexMappingTool</code>.</td></tr>
+    <tr><td>An MCP client</td><td>Anything that can call a tool through the gateway with an <code>Authorization: Bearer</code> key and show the full response (a 403 body, not just "failed").</td></tr>
+  </table>
+
+  <h3>In Privilege</h3>
+  <ol>
+    <li><b>Tenant MFA on:</b> user menu &rarr; Settings &rarr; Tenant Profile &rarr; Tenant Information &rarr; Edit &rarr; MFA = <b>Enabled</b>. Save.</li>
+    <li><b>AI Policy</b> (AI Policies &rarr; create), authoring tab <i>Build a rule</i>:
+      <table>
+        <tr><th>Field</th><th>Value</th></tr>
+        <tr><td>Name / State</td><td><code>opensearch-hitl</code> (cannot change later) / Active</td></tr>
+        <tr><td>When</td><td>MCP tool call, on the request</td></tr>
+        <tr><td>Outcome</td><td><b>Require human approval</b></td></tr>
+        <tr><td>MCP server / Tool</td><td>the app's name / one named tool or any tool</td></tr>
+        <tr><td>Grant shape / approvals</td><td>This transaction only / 1</td></tr>
+        <tr><td>Agent retry window</td><td>90 s</td></tr>
+        <tr><td>Request stays open</td><td>120 s</td></tr>
+        <tr><td>Who may approve</td><td>Anyone with admin rights (or a named group or user)</td></tr>
+        <tr><td>Reason shown to caller</td><td>free text</td></tr>
+      </table>
+      The detail page should read Active, Validation Valid, "1 refusal, asks a human".</li>
+  </ol>
+
+  <h3>Check (all three paths)</h3>
+  <table>
+    <tr><th>Path</th><th>Do</th><th>Expect</th></tr>
+    <tr><td>Hold</td><td>Call the protected tool</td><td>HTTP <code>403</code>, JSON-RPC <code>-32600</code>, <code>status: pending_approval</code>, an <code>instruction_id</code>, retry header <code>X-Procyon-Approval-Id</code></td></tr>
+    <tr><td>Approve</td><td>Console &rarr; HITL Requests &rarr; Awaiting &rarr; approve; confirm in PingID; retry within 90 s</td><td>Call succeeds; request moves to <b>Approved</b></td></tr>
+    <tr><td>Deny</td><td>Second protected call; Reject (or "No, it's not me" in PingID)</td><td>Moves to <b>Rejected</b>; retry still refused</td></tr>
+    <tr><td>Expire</td><td>Third call; do nothing for 120 s</td><td>Moves to <b>Expired</b>; approving afterwards is refused</td></tr>
+  </table>
+  <div class="warn"><b>Not yet run for real.</b> What is verified today is the gateway half only: <code>tools/list</code> through the live door returns 200 with the full tool list. The approve, deny and expire paths need the owner's PingID phone. Rehearsal labs: <code>privilege-demo-LAB</code>, <code>ciba-hitl-lab</code>, <code>hitl-mfa-lab</code> (their approvals are simulated).</div>
+</section>
+
+<!-- ============================ #30 ============================ -->
+<section class="step">
+  <h2>#30 SPIFFE identity (Federated Identity)</h2>
+  <p>Detail, results and log lines: <a href="30-spiffe.html">guide #30</a>. The gateway trusts a short-lived JWT-SVID instead of a static key, and checks issuer, subject (the SPIFFE ID) and audience.</p>
+
+  <h3>Needed from other systems: the SPIFFE issuer</h3>
+  <p>Privilege only <i>verifies</i> tokens. Something else must mint JWT-SVIDs and publish a public JWKS the gateway can fetch over HTTPS (no auth, not behind a login redirect). Our real run used <b>SPIRE 1.7.2 in the SE Kubernetes cluster</b>:</p>
+  <table>
+    <tr><th>Piece</th><th>Our value / requirement</th></tr>
+    <tr><td>SPIRE server</td><td>StatefulSet <code>spire-server</code>, image <code>spire-server:1.7.2</code> (1.12.4 crashed on the volume; do not bump without re-testing). Trust domain <code>se-cluster.ping-devops</code>, <code>jwt_issuer = "https://spire.ai-demo.ping-devops.com"</code> (this string is the token's <code>iss</code>), default SVID TTL 1 h.</td></tr>
+    <tr><td>OIDC discovery provider</td><td>Sidecar <code>oidc-discovery-provider:1.7.2</code> in the server pod, plain HTTP on 8090 (TLS ends at the ingress).</td></tr>
+    <tr><td>Public JWKS</td><td><code>https://ai-demo.ping-devops.com/spire/keys</code> through its own <b>auth-free</b> ingress (<code>spire-oidc</code>). Do not add it to an ingress that carries auth-signin annotations: unauthenticated fetches get a 302 to login and the gateway cannot read the keys.</td></tr>
+    <tr><td>Agent</td><td>Pod <code>spire-agent-1</code>, attested by <code>join_token</code> (PSAT was blocked by cluster RBAC). Non-default socket: always pass <code>-socketPath /run/spire/agent-sockets/socket</code>.</td></tr>
+    <tr><td>Workload entries</td><td>Valid: <code>spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent</code>. For the mismatch test, a second entry for <code>.../sa/other-agent</code>.</td></tr>
+  </table>
+  <p>Full SPIRE ops notes (join tokens, bundle, gotchas): <code>~/Development/HANDOFF-2026-11-19-spire-se-k8.md</code>. For a rehearsal with no cluster, the standalone <code>spiffe-issuer-LAB</code> mints the same three tokens locally.</p>
+
+  <h3>In Privilege</h3>
+  <ol>
+    <li><b>Federated Identity</b> (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>):
+      <table>
+        <tr><th>Field</th><th>Value</th></tr>
+        <tr><td>Name / Enabled</td><td><code>spiffe-issuer-lab</code> / on</td></tr>
+        <tr><td>Platform</td><td><code>spiffe</code> (a UI hint only)</td></tr>
+        <tr><td>Issuer</td><td>exactly the token's <code>iss</code>: <code>https://spire.ai-demo.ping-devops.com</code></td></tr>
+        <tr><td>Subject</td><td>the full SPIFFE ID (leave "allow any subject" off)</td></tr>
+        <tr><td>Audience</td><td>Mandatory. Ours: the generated <code>priv-nhi-...</code> value the identity displays; the token's <code>aud</code> must match it exactly</td></tr>
+        <tr><td>JWKS URI</td><td><code>https://ai-demo.ping-devops.com/spire/keys</code></td></tr>
+        <tr><td>Max token lifetime</td><td>3600 s (<code>exp - iat</code> may not exceed it)</td></tr>
+        <tr><td>Scopes</td><td><code>mcp</code> only</td></tr>
+      </table></li>
+    <li><b>Agent key behind the identity</b> (Agent Registry &rarr; Add Agent): custodian = the Federated Identity, scope <code>mcp</code>, select the MCP door (that is the grant). Ours: key <code>spiffe-lab</code>, door <code>aggregate-limited</code>. Leave the key's own workload identity empty (it is mutually exclusive with an identity custodian), and clear any user reference if you cloned a human-custodied key. An identity with no key behind it logs <code>rebuilding 0 key(s)</code> and accepts nothing.</li>
+  </ol>
+
+  <h3>Check</h3>
+<pre><code># mint a valid SVID (audience = the identity's audience)
+kubectl --context us exec spire-agent-1 -n ping-devops-cmuir -- \
+  /opt/spire/bin/spire-agent api fetch jwt \
+  -socketPath /run/spire/agent-sockets/socket -audience &lt;identity audience&gt;
+# mismatched: add  -spiffeID spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/other-agent
+
+curl -s -X POST https://mcpgw.ai-demo.ping-devops.com/aggregate-limited/mcp \
+  -H "Authorization: Bearer $SVID" -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
+  <table>
+    <tr><th>Token</th><th>Expect</th></tr>
+    <tr><td>Valid SVID</td><td><code>200</code> + tool list; log <code>workload token accepted for key spiffe-lab issuer=... subject=...</code></td></tr>
+    <tr><td>Different SPIFFE ID</td><td><code>401</code>, log names the claim that did not match</td></tr>
+    <tr><td>Signed by a key not in the JWKS</td><td><code>401</code>, <code>signature does not verify against any known key</code></td></tr>
+  </table>
+
+  <h3>Alternative issuer: a PingFederate token</h3>
+  <p>The same Federated Identity object trusts any OIDC issuer, so a PingFederate-minted JWT works without SPIFFE. Verified live 2026-11-13 on this gateway (guide: AI-DEMO2 <code>privilege/GATEWAY-WORKLOAD-IDENTITY-SETUP.md</code>; lab: <code>workload-identity-LAB</code>, real mode). It proves the federated-identity mechanism, but it is not SPIFFE-shaped, so keep it as the "and it also works with your IdP" follow-up, not the #30 answer.</p>
+  <table>
+    <tr><th>Where</th><th>What to build</th></tr>
+    <tr><td>PingFederate</td><td>
+      <ol style="margin:0;padding-left:18px">
+        <li>An OAuth client with grant <code>client_credentials</code>.</li>
+        <li>A <b>JWT access token manager</b> (unique Key ID) with audience and resource URI = the gateway app URL (<code>https://&lt;gateway&gt;/&lt;app&gt;/mcp</code>). Do not add <code>scope</code> to the attribute contract.</li>
+        <li>Access token mapping for the <code>CLIENT_CREDENTIALS</code> context: <code>sub</code> and <code>client_id</code> from the ClientId, and <code>act</code> = <code>#{"sub": "&lt;agent id&gt;"}</code> as an <b>object</b>, not text.</li>
+        <li>Set the client's default token manager to that one. <b>Every token request must send <code>resource=&lt;app URL&gt;</code></b>, or a different manager answers (wrong <code>aud</code>, no <code>act</code>) and the gateway returns 401 <code>token_not_found</code>.</li>
+        <li>Decode a token: you need <code>iss</code>, <code>sub</code>, <code>aud</code>, <code>client_id</code>, <code>act.sub</code>, <code>scope</code>.</li>
+      </ol></td></tr>
+    <tr><td>Privilege app</td><td>MCP app whose URL ends in exactly <code>/mcp</code>, Auth Mode <b>Pass Agent Token</b>. Needs gateway <code>privilege-aigw v1.261024</code> or later.</td></tr>
+    <tr><td>Privilege identity</td><td>Federated Identity with type <i>OIDC Provider</i>, issuer = the PF base URL, key source = fetch from <code>&lt;pf&gt;/pf/JWKS</code>, subject <code>*</code>, audience = the app URL, required claims <code>act.sub</code> and <code>client_id</code>, scope <code>mcp</code>.</td></tr>
+    <tr><td>Privilege key</td><td>Agent key with the identity as custodian and the app selected. Edit the key's own grant; a separately created API policy is deleted by the gateway within seconds.</td></tr>
+    <tr><td>Call</td><td><code>curl https://&lt;pf&gt;/as/token.oauth2 -u "&lt;client&gt;:$PF_CLIENT_SECRET" -d grant_type=client_credentials -d "scope=..." -d "resource=&lt;app URL&gt;"</code>, then use the token as the bearer on <code>tools/list</code>. Keep the client secret in an environment variable, never in a file you commit.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 style="margin-bottom:6px">If something fails</h2>
+  <table>
+    <tr><th>You see</th><th>Likely cause</th></tr>
+    <tr><td><code>401 invalid virtual key</code> (#28)</td><td>Key typo, doubled paste, revoked or expired.</td></tr>
+    <tr><td>Bare <code>403</code> on the allowed agent (#28)</td><td>Remote Agent not selected on that agent, the key lacks the <code>a2a</code> scope, or the app is on <i>Pass Agent Token</i>. Read the gateway log.</td></tr>
+    <tr><td>Empty tool list (#28, #30)</td><td>Re-save the MCP app so discovery re-runs with the backend up.</td></tr>
+    <tr><td>Protected tool call just succeeds (#29)</td><td>Policy not Active or not matching the app and tool name; or not yet propagated (4 min).</td></tr>
+    <tr><td>Approval never completes (#29)</td><td>PingID not paired to the approver's account, or tenant MFA still off.</td></tr>
+    <tr><td>Valid SVID gets 401, no <code>workload token</code> log line (#30)</td><td>No agent key behind the identity, identity disabled, or not yet propagated.</td></tr>
+    <tr><td>Valid SVID rejected on audience (#30)</td><td>The token's <code>aud</code> is not exactly the audience the identity displays.</td></tr>
+    <tr><td>JWKS cannot be fetched (#30)</td><td>The JWKS URL sits behind a login redirect or is not public HTTPS.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>Sources: guides #28, #29 and #30, the lab README section "Set up on Privilege, in order", the SPIRE SE-cluster handoff of 2026-11-19, and AI-DEMO2 <code>privilege/GATEWAY-WORKLOAD-IDENTITY-SETUP.md</code>. Text only: never publish a key, token, client secret or tenant id.</footer>
+</body>
+</html>
