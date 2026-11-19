@@ -15,6 +15,7 @@
 
 <section>
   <h2 style="margin-bottom:6px">What this proves</h2>
+  <div class="warn"><b>Status 2026-11-19:</b> the owner reports the PingID push is working. The held call (<code>403</code>, <code>pending_approval</code>) is captured here as real. A full approve, deny and expire run with PingID is not yet recorded in the tenant's approval history.</div>
   <p>The test: <i>configure a protected action requiring approval; test approve, deny and timeout paths.</i> An MCP tool call that passes through the Privilege gateway is <b>held</b> by a policy. A person approves it and the approval is confirmed with <b>PingID</b> (push or passcode). The agent then retries and the call goes through.</p>
   <pre><code>MCP client --&gt; Privilege gateway --&gt; policy: "Require human approval"
                                        |  HTTP 403 pending_approval
@@ -49,7 +50,7 @@ MCP client retries within the window --+--&gt; call succeeds</code></pre>
     <li><b>Tenant &rarr; Profile &rarr; Tenant Information &rarr; Edit</b>.</li>
     <li>Set <b>MFA</b> to <b>Enabled</b> (the reference recording shows <code>Enabled (120 minutes)</code>), then save.</li>
   </ol>
-  <figure class="shot" data-file="29-02-tenant-mfa-enabled.png"><img src="img/29-02-tenant-mfa-enabled.png" alt="Tenant MFA enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Tenant Information with MFA Enabled. <b>Hide the tenant id.</b></figcaption></figure>
+  <figure class="shot" data-file="29-02-tenant-mfa-enabled.png"><img src="img/29-02-tenant-mfa-enabled.png" alt="Tenant MFA enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Tenant MFA enabled: <code>EnableMFA: true</code> (API view; the console page shows the tenant id).</figcaption></figure>
 </section>
 
 <section class="step">

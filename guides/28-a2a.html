@@ -77,7 +77,7 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
 <section class="step">
   <h2>Create the main agent</h2>
   <p>Same wizard, with a <b>different custodian</b>: scopes <code>llm</code> + <code>a2a</code>, a different allowed model, <b>Remote Agents &rarr; <code>workeragentdemo</code></b>. Selecting the app is the grant; saving auto-creates the policy for the custodian.</p>
-  <figure class="shot" data-file="28-05-main-agent-remote-agent-grant.png"><img src="img/28-05-main-agent-remote-agent-grant.png" alt="Main agent with remote agent selected" onerror="this.parentNode.classList.add('missing')"><figcaption>Main agent: scopes <code>llm</code> + <code>a2a</code>, Remote Agent <code>workeragentdemo</code> selected.</figcaption></figure>
+  <figure class="shot" data-file="28-05-main-agent-remote-agent-grant.png"><img src="img/28-05-main-agent-remote-agent-grant.png" alt="Main agent with remote agent selected" onerror="this.parentNode.classList.add('missing')"><figcaption>The grant on our tenant: policy <code>MainAgentA2aMcpTools</code> has an <code>A2A</code> rule to the worker app (API view). The console's key page does not list it, although the gateway honours it; selecting the Remote Agent on the key in the wizard is the documented route.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -124,11 +124,10 @@ WORKER_PUBLIC_URL=https://&lt;gateway-host&gt;/workeragentdemo/a2a/jsonrpc</code
 <section>
   <h2>Evidence that it was real</h2>
   <ul class="checks">
-    <li>The gateway log (<code>/var/log/procyon/cyonproxy.log</code> in the gateway pod, newest rotated file too) shows the A2A call under the main agent's key, and <code>policy denied</code> for the third agent. A bare <code>403</code> is only explained there.</li>
+    <li>The status codes: the allowed A2A call returns <code>200</code>, and the key without the <code>a2a</code> scope returns <code>403</code> (<code>key not scoped for a2a access</code>). On our deployment the gateway log does not record these calls per call, so the codes are the evidence.</li>
     <li>The console's agent activity / audit view shows both agents by name.</li>
     <li>The lab's startup log shows the gateway URL, not <code>direct Anthropic</code>.</li>
   </ul>
-  <figure class="shot" data-file="28-10-gateway-log-policy-denied.png"><img src="img/28-10-gateway-log-policy-denied.png" alt="Gateway log lines" onerror="this.parentNode.classList.add('missing')"><figcaption>Gateway log: the allowed A2A call and the <code>policy denied</code> line. Redact keys.</figcaption></figure>
 </section>
 
 <section>

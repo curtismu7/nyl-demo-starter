@@ -96,7 +96,7 @@
       <tr>
         <td>Real gateway HITL with PingID push / passcode on the owner's phone</td>
         <td><a href="guides/29-human-approval.html">follow the setup guide</a></td>
-        <td><span class="badge owner">NOT YET RUN: needs owner + PingID phone</span></td>
+        <td><span class="badge partial">OWNER REPORTS PINGID PUSH WORKS; full run not yet recorded</span></td>
       </tr>
     </table>
     <p class="note"><b>Privilege setup docs:</b> <a href="guides/29-human-approval.html"><b>Step-by-step guide with screenshots</b></a>
@@ -128,7 +128,7 @@
     <table>
       <tr><th>Item</th><th>Real run status</th></tr>
       <tr><td>#28 A2A</td><td><b>DONE &mdash; real run 2026-11-19.</b> Main agent delegated to the worker over A2A through the gateway, the worker read entitlements over MCP through the gateway, and a real answer came back (<code>200</code>). The same A2A call with the worker's key, which has no <code>a2a</code> scope, was refused (<code>403</code>, <code>key not scoped for a2a access</code>).</td></tr>
-      <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). The approve, deny and expire run with PingID is not yet done.</td></tr>
+      <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). The owner reports the PingID push is working; the approve, deny and expire run is not yet recorded in the tenant's approval history.</td></tr>
       <tr><td>#30 SPIFFE</td><td><b>DONE &mdash; real run 2026-11-19.</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one (<code>200</code> + tool list) and refused the mismatched SPIFFE ID and the untrusted key (<code>401</code>). Evidence: the HTTP statuses, re-run 2026-11-19 (no per-call gateway log line was found for the SPIFFE key). The standalone lab remains the rehearsal mode.</td></tr>
     </table>
     <p class="note">Labs only answer while their container runs (lab-proxy routes by container name). If a link 404s: <code>cd ~/Development/AI-DEMO-Standalone/standalone/&lt;lab&gt; &amp;&amp; docker compose up -d</code>. Open each slug with a trailing slash.</p>
