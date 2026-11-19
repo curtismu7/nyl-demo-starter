@@ -25,6 +25,7 @@
   .badge { display:inline-block; font-size:.72rem; font-weight:700; border-radius:10px; padding:2px 8px; margin-left:6px; vertical-align:middle; }
   .mock { background:#e8f4ec; color:#1f7a4d; }
   .owner { background:#fdeaea; color:var(--red); }
+  .real { background:#e8f4ec; color:#1f7a4d; }
   .rehearsal { background:#eceff3; color:#4a5361; }
   .partial { background:#fff3d6; color:#8a5a00; }
   code { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:.82rem; }
@@ -50,7 +51,7 @@
       <tr>
         <td>Privilege A2A demo &mdash; main agent calls a worker agent through the real gateway, each agent with its own key</td>
         <td><a href="https://local.ping-devops.com:8443/privilege-a2a/">local.ping-devops.com:8443/privilege-a2a/</a></td>
-        <td><span class="badge owner">NOT YET REAL: needs Privilege setup</span></td>
+        <td><span class="badge real">REAL RUN DONE 2026-11-19</span></td>
       </tr>
     </table>
     <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
@@ -109,10 +110,10 @@
 
   <div class="card">
     <h2>Talking points</h2>
-    <p class="req" style="margin-bottom:8px"><b>The deliverable is a real run against a Privilege gateway for each of #28, #29 and #30.</b> The REHEARSAL ONLY rows above simulate Privilege on the presenter's own machine and do not count as the test. The rows marked NOT YET REAL and NOT YET RUN are the real runs, and the guides above are how to set them up.</p>
+    <p class="req" style="margin-bottom:8px"><b>The deliverable is a real run against a Privilege gateway for each of #28, #29 and #30.</b> The REHEARSAL ONLY rows above simulate Privilege on the presenter's own machine and do not count as the test. The rows marked NOT YET RUN (and the REAL RUN DONE rows) are the real runs, and the guides above are how to set them up.</p>
     <table>
       <tr><th>Item</th><th>Real run status</th></tr>
-      <tr><td>#28 A2A</td><td>Not yet real. Needs the Privilege apps and agents, and a worker the gateway can reach.</td></tr>
+      <tr><td>#28 A2A</td><td><b>DONE &mdash; real run 2026-11-19.</b> Main agent delegated to the worker over A2A through the gateway, the worker read entitlements over MCP through the gateway, and a real answer came back (<code>200</code>). The same A2A call with the worker's key, which has no <code>a2a</code> scope, was refused (<code>403</code>, <code>key not scoped for a2a access</code>).</td></tr>
       <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). The approve, deny and expire run with PingID is not yet done.</td></tr>
       <tr><td>#30 SPIFFE</td><td><b>DONE &mdash; real run 2026-11-19.</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one (<code>200</code> + tool list) and refused the mismatched SPIFFE ID and the untrusted key (<code>401</code>). Gateway log captured. The standalone lab remains the rehearsal mode.</td></tr>
     </table>

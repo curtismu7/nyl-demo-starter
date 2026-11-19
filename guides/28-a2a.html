@@ -20,6 +20,14 @@
 main agent  --(2) model call, main key---------&gt;  gateway --&gt; model provider
 worker      --(3) model call, worker key-------&gt;  gateway --&gt; model provider
 worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</code></pre>
+  <h2 style="margin-bottom:6px">Real run &mdash; results (2026-11-19)</h2>
+  <table>
+    <tr><th>Present</th><th>Expected</th><th>Actual result</th></tr>
+    <tr><td>Main agent: &ldquo;Review Carol Nguyen's access&rdquo; (concierge &rarr; analyst agent over A2A &rarr; worker MCP call, all through the gateway)</td><td>an answer</td><td><b><code>200</code>, a real access review</b> built from the entitlement tool result</td></tr>
+    <tr><td>A2A <code>message/send</code> to the worker with the main agent's key</td><td><code>200</code></td><td><b><code>200</code></b></td></tr>
+    <tr><td>The same call with the worker agent's key (scopes <code>llm</code> + <code>mcp</code>, no <code>a2a</code>)</td><td><code>403</code></td><td><b><code>403</code></b>, <code>Forbidden: key not scoped for a2a access</code></td></tr>
+  </table>
+  <div class="warn" style="background:#e8f4ec;border-color:#1f7a4d"><b>REAL RUN &mdash; passed 2026-11-19.</b> Both agents use their own Privilege agent key; the lab's startup talks to the gateway, not directly to Anthropic. The refusal above uses an agent with a real key but no <code>a2a</code> scope rather than a third no-grant agent.</div>
   <div class="warn"><b>It must be a real run.</b> The mock A2A Lab on the starter page rehearses the story; it does not exercise Privilege. This guide is the real setup. Use the demo lab <code>privilege-a2a-anthropic-demo-LAB</code> as the two agents.</div>
 </section>
 
