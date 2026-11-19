@@ -15,7 +15,7 @@ h3 { margin:18px 0 6px; font-size:1rem; }
 a { color:var(--red); }
 code { background:var(--code); border-radius:4px; padding:1px 5px; font-size:.84rem; overflow-wrap:anywhere; }
 section { min-width:0; }
-@media (max-width: 600px) { header { padding:20px 16px 14px; } main { padding:16px 16px 60px; } section { padding:16px; } th, td { padding:6px 6px; } }
+@media (max-width: 600px) { header { padding:20px 16px 14px; } main { padding:16px 16px 60px; } section { padding:16px; } th, td { padding:6px 6px; } table { display:block; overflow-x:auto; } }
 pre { background:var(--code); border-radius:6px; padding:12px 14px; overflow-x:auto; font-size:.82rem; }
 pre code { background:none; padding:0; }
 table { width:100%; border-collapse:collapse; font-size:.9rem; margin:8px 0; }
