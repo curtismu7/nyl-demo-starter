@@ -57,6 +57,16 @@
         <td><a href="https://local.ping-devops.com:8443/privilege-a2a/" target="_blank" rel="noopener noreferrer">local.ping-devops.com:8443/privilege-a2a/</a></td>
         <td><span class="badge real">REAL RUN DONE 2026-11-19</span></td>
       </tr>
+      <tr>
+        <td>Privilege A2A demo, tab <b>Custodian to AWS agent</b> &mdash; our main agent calls an agent that runs in AWS, through the gateway; the page shows custodian, main agent, gateway and AWS agent lighting up, with what crossed each hop. With no gateway route set the AWS agent is a local stand-in</td>
+        <td><a href="https://local.ping-devops.com:8443/privilege-a2a/#aws" target="_blank" rel="noopener noreferrer">local.ping-devops.com:8443/privilege-a2a/#aws</a></td>
+        <td><span class="badge rehearsal">REHEARSAL ONLY &mdash; simulated AWS agent</span></td>
+      </tr>
+      <tr>
+        <td>Real run: main agent calls the AWS agent through the real gateway (the Remote Agent app that fronts it is already set up in Privilege)</td>
+        <td>set <code>AWS_AGENT_A2A_URL</code> in the lab <code>.env</code> to that app's gateway route, then open the tab above</td>
+        <td><span class="badge owner">NOT YET RUN: needs the gateway route to the AWS agent</span></td>
+      </tr>
     </table>
     <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
       <a href="https://github.com/curtismu7/privilege-a2a-anthropic-demo-LAB#set-up-on-privilege-in-order">&ldquo;Set up on Privilege, in order&rdquo;</a>
