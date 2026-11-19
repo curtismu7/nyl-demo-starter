@@ -197,9 +197,9 @@ curl -s -X POST https://mcpgw.ai-demo.ping-devops.com/aggregate-limited/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
   <table>
     <tr><th>Token</th><th>Expect</th></tr>
-    <tr><td>Valid SVID</td><td><code>200</code> + tool list; log <code>workload token accepted for key spiffe-lab issuer=... subject=...</code></td></tr>
+    <tr><td>Valid SVID</td><td><code>200</code> + tool list. (The gateway logs the JWKS load and key upsert at setup, but we found no per-call accepted line for this key.)</td></tr>
     <tr><td>Different SPIFFE ID</td><td><code>401</code>, log names the claim that did not match</td></tr>
-    <tr><td>Signed by a key not in the JWKS</td><td><code>401</code>, <code>signature does not verify against any known key</code></td></tr>
+    <tr><td>Signed by a key not in the JWKS</td><td><code>401</code></td></tr>
   </table>
 
   <h3>Alternative issuer: a PingFederate token</h3>

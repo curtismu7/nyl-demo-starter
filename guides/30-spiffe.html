@@ -21,11 +21,9 @@
     <tr><th>Present</th><th>Expected at the gateway</th><th>Actual result</th></tr>
     <tr><td>Valid JWT-SVID (right issuer, right SPIFFE ID, right audience)</td><td>accepted, <code>tools/list</code> returns <code>200</code></td><td><b><code>200</code> with the real tool list</b> (banking tools via the <code>aggregate-limited</code> door)</td></tr>
     <tr><td>Mismatched: right issuer, a <i>different</i> SPIFFE ID</td><td><code>401</code>, subject mismatch</td><td><b><code>401</code></b> (SVID minted for a different registered workload was refused)</td></tr>
-    <tr><td>Untrusted: the right SPIFFE ID but signed by an issuer / key the gateway does not trust</td><td><code>401</code>, issuer or signature rejected</td><td><b><code>401</code></b>, <code>signature does not verify against any known key</code></td></tr>
+    <tr><td>Untrusted: the right SPIFFE ID but signed by an issuer / key the gateway does not trust</td><td><code>401</code>, issuer or signature rejected</td><td><b><code>401</code></b> (a token with a corrupted signature, and earlier a token signed by a key the SPIRE JWKS does not publish)</td></tr>
   </table>
-  <p>The gateway log line for the accepted call (host names kept, tenant id redacted):</p>
-<pre><code>mcpgw: workload token accepted for key spiffe-lab issuer=https://spire.ai-demo.ping-devops.com subject=spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent
-mcpgw: workload token rejected: signature does not verify against any known key</code></pre>
+  <p><b>Evidence is the HTTP statuses</b> (re-run and confirmed 2026-11-19). A search of the gateway pod's log files found <b>no per-call <code>workload token accepted</code> / <code>rejected</code> line for the SPIFFE key</b>, although such lines exist for the PingFederate key. The log does show the setup: the gateway loaded the SPIRE JWKS (<code>workloadid: jwks https://ai-demo.ping-devops.com/spire/keys loaded 1 keys</code>) and upserted the key for the SPIRE issuer and subject.</p>
   <div class="warn" style="background:#e8f4ec;border-color:#1f7a4d"><b>REAL RUN &mdash; passed 2026-11-19.</b> The gateway accepted a real SPIFFE JWT-SVID and returned <code>200</code> with a real tool list, and refused both negatives. The issuer is <b>SPIRE 1.7.2 running in the SE Kubernetes cluster</b> (namespace <code>ping-devops-cmuir</code>), whose OIDC discovery provider is public at <code>https://ai-demo.ping-devops.com/spire/keys</code> (issuer <code>https://spire.ai-demo.ping-devops.com</code>). Privilege NHI <code>spiffe-issuer-lab</code> pins issuer, subject and JWKS URI; agent key <code>spiffe-lab</code> (custodian = the NHI) is granted on the MCP door <code>aggregate-limited</code> via pacpolicy <code>spiffe-lab-aggregate-limited</code>. Evidence text below; no token or key values are reproduced anywhere on this page.</div>
 </section>
 
@@ -97,9 +95,9 @@ mcpgw: workload token rejected: signature does not verify against any known key<
   <p>Send each token as the bearer on a <code>tools/list</code> call to <code>https://mcpgw.ai-demo.ping-devops.com/aggregate-limited/mcp</code> (initialize first, as any MCP client does). Wait about 4 minutes after creating the objects before the first test.</p>
   <table>
     <tr><th>Token</th><th>Expect</th><th>Gateway log</th></tr>
-    <tr><td>valid</td><td><code>200</code>, tool list</td><td><code>workload token accepted for key spiffe-lab issuer=https://spire.ai-demo.ping-devops.com subject=spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent</code></td></tr>
-    <tr><td>mismatched</td><td><code>401</code></td><td><code>workload token rejected: &hellip;</code> (names the claim that did not match)</td></tr>
-    <tr><td>untrusted</td><td><code>401</code></td><td><code>workload token rejected: signature does not verify against any known key</code></td></tr>
+    <tr><td>valid</td><td><code>200</code>, tool list</td><td>no per-call line found for this key on 2026-11-19; the <code>200</code> is the evidence</td></tr>
+    <tr><td>mismatched</td><td><code>401</code></td><td>no per-call line found; the <code>401</code> is the evidence</td></tr>
+    <tr><td>untrusted</td><td><code>401</code></td><td>no per-call line found; the <code>401</code> is the evidence</td></tr>
   </table>
   <p>How the real run minted the SVIDs (from inside the cluster, using the SPIRE agent's Workload API):</p>
 <pre><code>kubectl exec spire-agent-1 -n ping-devops-cmuir -- \
@@ -115,7 +113,7 @@ mcpgw: workload token rejected: signature does not verify against any known key<
 <section>
   <h2>Evidence that it was real (captured 2026-11-19)</h2>
   <ul class="checks">
-    <li><b>Confirmed:</b> the gateway log shows one <code>workload token accepted</code> line naming <code>key spiffe-lab</code>, the SPIRE issuer and the SPIFFE subject, and <code>workload token rejected</code> lines for both negatives (the untrusted-key one says <code>signature does not verify against any known key</code>).</li>
+    <li><b>Not found:</b> a per-call <code>workload token accepted</code> or <code>rejected</code> log line for key <code>spiffe-lab</code>. Searched all log files on the gateway pod on 2026-11-19, including calls made minutes earlier. Treat the HTTP statuses as the evidence, and capture a console screenshot of the key instead of a log screenshot unless the gateway is set to log these.</li>
     <li><b>Confirmed:</b> the identity <code>spiffe-issuer-lab</code>, key <code>spiffe-lab</code> and pacpolicy <code>spiffe-lab-aggregate-limited</code> exist in the console (created via the console API), not in a lab.</li>
     <li><b>Confirmed:</b> the three tokens were minted by SPIRE in the SE cluster; the gateway fetched the JWKS from the public URL <code>https://ai-demo.ping-devops.com/spire/keys</code>.</li>
   </ul>
