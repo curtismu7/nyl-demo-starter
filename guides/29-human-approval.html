@@ -85,8 +85,8 @@ forbid (
 when   { context.app == "opensearch" }
 unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };</code></pre>
   <p>Save. The detail page should show State <b>Active</b>, Validation <b>Valid</b>, Effect "1 refusal, asks a human". The short windows keep a demo from waiting; lengthen them for real use.</p>
-  <figure class="shot" data-file="29-03-policy-builder.png"><img src="img/29-03-policy-builder.png" alt="AI policy builder, Require human approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The policy builder with the values above.</figcaption></figure>
-  <figure class="shot" data-file="29-04-policy-active-valid.png"><img src="img/29-04-policy-active-valid.png" alt="Policy detail, Active and Valid" onerror="this.parentNode.classList.add('missing')"><figcaption>Saved policy: Active, Valid, "asks a human".</figcaption></figure>
+  <figure class="shot" data-file="29-03-policy-builder.png"><img src="img/29-03-policy-builder.png" alt="AI policy builder, Require human approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The Cedar of an approval policy on our tenant (<code>hitl-opensearch</code>): <code>forbid</code> unless <code>approval_count</code> is at least 1. <b>This tenant's policy uses <code>@ttl</code> 900 and <code>@request_ttl</code> 3600, not the short demo values in the table above.</b> The approver group id and account are masked.</figcaption></figure>
+  <figure class="shot" data-file="29-04-policy-active-valid.png"><img src="img/29-04-policy-active-valid.png" alt="Policy detail, Active and Valid" onerror="this.parentNode.classList.add('missing')"><figcaption>AI Policies filtered to the approval policy: Effect &ldquo;1 refusal, asks a human&rdquo;, Runs at MCP &middot; Before inspection, Validation Valid, State Active.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -99,9 +99,9 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
     <li>Re-run the tool within <b>90 seconds</b>. It now succeeds and the request moves to <b>Approved</b>.</li>
   </ol>
   <figure class="shot" data-file="29-05-held-403-pending.png"><img src="img/29-05-held-403-pending.png" alt="Held call, 403 pending_approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The held call: <code>403</code>, <code>-32600</code>, <code>pending_approval</code>, <code>instruction_id</code>.</figcaption></figure>
-  <figure class="shot" data-file="29-06-hitl-awaiting.png"><img src="img/29-06-hitl-awaiting.png" alt="HITL Requests, Awaiting" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, the request under Awaiting A Decision.</figcaption></figure>
+  <figure class="shot" data-file="29-06-hitl-awaiting.png"><img src="img/29-06-hitl-awaiting.png" alt="HITL Requests, Awaiting" onerror="this.parentNode.classList.add('missing')"><figcaption>The HITL Requests page and its tabs (Awaiting A Decision, Approved, Rejected, Expired, All, Archive). Nothing was waiting when this was captured; during a run the held request appears here. Account masked.</figcaption></figure>
   <figure class="shot" data-file="29-07-pingid-push.png"><img src="img/29-07-pingid-push.png" alt="PingID push prompt" onerror="this.parentNode.classList.add('missing')"><figcaption>The PingID push prompt on the phone.</figcaption></figure>
-  <figure class="shot" data-file="29-08-approved-retry-succeeds.png"><img src="img/29-08-approved-retry-succeeds.png" alt="Request approved, retry succeeds" onerror="this.parentNode.classList.add('missing')"><figcaption>Request in Approved and the retried call returning a result.</figcaption></figure>
+  <figure class="shot" data-file="29-08-approved-retry-succeeds.png"><img src="img/29-08-approved-retry-succeeds.png" alt="Request approved, retry succeeds" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, Approved tab: one request (<code>mcp:InvokeUnattended</code>, MCP gateway, approvals 1 / 1, state Approved), so an approval has been recorded on this tenant. The retried call's result is not part of this capture. Account masked.</figcaption></figure>
 
   <h3>Deny</h3>
   <p>Make a second protected call. In <b>HITL Requests</b> choose <b>Reject</b> (on the PingID prompt, "No, it's not me" also rejects). The request moves to <b>Rejected</b> and a retry is refused again.</p>
@@ -109,7 +109,7 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 
   <h3>Timeout</h3>
   <p>Make a third protected call and <b>do nothing</b>. After the request window (120 s here) it moves to <b>Expired</b>. Approving it afterwards is refused. A decided record cannot be changed: approve, reject and expiry are all terminal.</p>
-  <figure class="shot" data-file="29-10-expired.png"><img src="img/29-10-expired.png" alt="Request expired" onerror="this.parentNode.classList.add('missing')"><figcaption>The request under Expired.</figcaption></figure>
+  <figure class="shot" data-file="29-10-expired.png"><img src="img/29-10-expired.png" alt="Request expired" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, Expired tab: three requests expired with approvals 0 / 1, because nobody decided in time. The Rejected tab was empty when checked, so the deny path has not been run yet. Account masked.</figcaption></figure>
 </section>
 
 <section>

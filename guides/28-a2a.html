@@ -58,8 +58,8 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
     <tr><td>Path</td><td><code>/a2a</code></td><td><code>/mcp</code></td></tr>
     <tr><td>Auth Mode</td><td>None (never <i>Pass Agent Token</i>: it refuses key callers)</td><td>None</td></tr>
   </table>
-  <figure class="shot" data-file="28-02-add-remote-agent-app.png"><img src="img/28-02-add-remote-agent-app.png" alt="Add Application, Remote Agent" onerror="this.parentNode.classList.add('missing')"><figcaption>Add Application: <code>workeragentdemo</code> filled in as a Remote Agent.</figcaption></figure>
-  <figure class="shot" data-file="28-03-add-mcp-app.png"><img src="img/28-03-add-mcp-app.png" alt="Add Application, MCP" onerror="this.parentNode.classList.add('missing')"><figcaption>Add Application: <code>mcpdemo</code> filled in as an MCP app.</figcaption></figure>
+  <figure class="shot" data-file="28-02-add-remote-agent-app.png"><img src="img/28-02-add-remote-agent-app.png" alt="Add Application, Remote Agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The Remote Agent app as it appears in the console once created (shown here for <code>workeragentdemo2</code> on our tenant): type Remote Agent, frontend path <code>/a2a</code>, backend service URL. Namespace, mesh cluster and account are masked.</figcaption></figure>
+  <figure class="shot" data-file="28-03-add-mcp-app.png"><img src="img/28-03-add-mcp-app.png" alt="Add Application, MCP" onerror="this.parentNode.classList.add('missing')"><figcaption>An MCP app in the console (<code>a2a-mcp-tools</code> on our tenant): type MCP Server, its discovered tools and the gateway client entry. Account masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -71,7 +71,7 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
     <li><b>Runtime Protection:</b> leave the defaults, or set the AI Guard thresholds you want to demonstrate.</li>
     <li><b>Review &amp; Create:</b> copy the key now and treat it as a secret.</li>
   </ul>
-  <figure class="shot" data-file="28-04-worker-agent-scopes-apps.png"><img src="img/28-04-worker-agent-scopes-apps.png" alt="Worker agent, scopes and apps" onerror="this.parentNode.classList.add('missing')"><figcaption>Worker agent: scopes <code>llm</code> + <code>mcp</code>, MCP server <code>mcpdemo</code> selected, tools allowed. <b>Hide the key.</b></figcaption></figure>
+  <figure class="shot" data-file="28-04-worker-agent-scopes-apps.png"><img src="img/28-04-worker-agent-scopes-apps.png" alt="Worker agent, scopes and apps" onerror="this.parentNode.classList.add('missing')"><figcaption>The worker agent's key (<code>worker-agent</code> on our tenant), Configuration tab: the MCP gateway policy, the MCP client entry and tool restrictions. The key itself is shown masked by the console. Account masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -83,13 +83,13 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
 <section class="step">
   <h2>Create a third agent with no grant (the unauthorized one)</h2>
   <p>Create one more agent with scope <code>a2a</code> and <b>no Remote Agent selected</b>. It is the "unauthorized agent" for the refusal test. Use a different custodian again.</p>
-  <figure class="shot" data-file="28-06-unauthorized-agent.png"><img src="img/28-06-unauthorized-agent.png" alt="Agent with a2a scope and no remote agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The third agent: <code>a2a</code> scope, Remote Agents empty.</figcaption></figure>
+  <figure class="shot" data-file="28-06-unauthorized-agent.png"><img src="img/28-06-unauthorized-agent.png" alt="Agent with a2a scope and no remote agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The same worker agent's A2A section: <b>&ldquo;A2A scope not granted &mdash; this key cannot send agent-to-agent requests.&rdquo;</b> This is the console's own statement of the unauthorized-agent case.</figcaption></figure>
 </section>
 
 <section class="step">
   <h2>Turn on agent-card discovery</h2>
   <p>On the <code>workeragentdemo</code> app, switch on <b>Discover A2A agent card</b> once the worker is running.</p>
-  <figure class="shot" data-file="28-07-discover-agent-card.png"><img src="img/28-07-discover-agent-card.png" alt="Discover A2A agent card enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Discover A2A agent card enabled on <code>workeragentdemo</code>.</figcaption></figure>
+  <figure class="shot" data-file="28-07-discover-agent-card.png"><img src="img/28-07-discover-agent-card.png" alt="Discover A2A agent card enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>The Agent Card tab of <code>workeragentdemo2</code>: protocol version, binding, card URL and the last-discovered time show the gateway discovered the worker's A2A agent card. Namespace, gateway host and account masked.</figcaption></figure>
 </section>
 
 <section class="step">
