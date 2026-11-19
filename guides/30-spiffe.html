@@ -16,13 +16,17 @@
 <section>
   <h2 style="margin-bottom:6px">What this proves</h2>
   <p>The test: <i>present a valid test SPIFFE identity and a mismatched or untrusted identity to the gateway.</i> In Privilege this is a <b>Federated Identity</b> (the new display name for Non-Human Identity; the console API object is still <code>NonHumanIdentity</code> at <code>/v1/nonhumanidentities</code>). The agent proves who it is with a short-lived <b>JWT-SVID</b> instead of a static key, and the gateway checks the issuer, the subject (the SPIFFE ID) and the audience.</p>
+  <h2 style="margin-bottom:6px">Real run &mdash; results (2026-11-19)</h2>
   <table>
-    <tr><th>Present</th><th>Expected at the gateway</th></tr>
-    <tr><td>Valid JWT-SVID (right issuer, right SPIFFE ID, right audience)</td><td>accepted, <code>tools/list</code> returns <code>200</code></td></tr>
-    <tr><td>Mismatched: right issuer, a <i>different</i> SPIFFE ID</td><td><code>401</code>, subject mismatch</td></tr>
-    <tr><td>Untrusted: the right SPIFFE ID but signed by an issuer / key the gateway does not trust</td><td><code>401</code>, issuer or signature rejected</td></tr>
+    <tr><th>Present</th><th>Expected at the gateway</th><th>Actual result</th></tr>
+    <tr><td>Valid JWT-SVID (right issuer, right SPIFFE ID, right audience)</td><td>accepted, <code>tools/list</code> returns <code>200</code></td><td><b><code>200</code> with the real tool list</b> (banking tools via the <code>aggregate-limited</code> door)</td></tr>
+    <tr><td>Mismatched: right issuer, a <i>different</i> SPIFFE ID</td><td><code>401</code>, subject mismatch</td><td><b><code>401</code></b> (SVID minted for a different registered workload was refused)</td></tr>
+    <tr><td>Untrusted: the right SPIFFE ID but signed by an issuer / key the gateway does not trust</td><td><code>401</code>, issuer or signature rejected</td><td><b><code>401</code></b>, <code>signature does not verify against any known key</code></td></tr>
   </table>
-  <div class="warn"><b>It must be a real run, and it is not built yet.</b> The lab simulation of SPIFFE verifies against its own engine only. A real run needs a SPIFFE issuer that mints JWT-SVIDs and publishes a <b>public JWKS the gateway can fetch</b>. Nothing in our labs mints tokens for a public JWKS today, so that issuer is the first thing to build or stand up (step 1). <span class="tag unverified">UNVERIFIED</span> Whether the gateway accepts a SPIFFE JWT-SVID directly has not been run on our tenant; the SPIFFE-to-PingFederate leg is verified, SPIFFE straight to the gateway is not.</div>
+  <p>The gateway log line for the accepted call (host names kept, tenant id redacted):</p>
+<pre><code>mcpgw: workload token accepted for key spiffe-lab issuer=https://spire.ai-demo.ping-devops.com subject=spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent
+mcpgw: workload token rejected: signature does not verify against any known key</code></pre>
+  <div class="warn" style="background:#e8f4ec;border-color:#1f7a4d"><b>REAL RUN &mdash; passed 2026-11-19.</b> The gateway accepted a real SPIFFE JWT-SVID and returned <code>200</code> with a real tool list, and refused both negatives. The issuer is <b>SPIRE 1.7.2 running in the SE Kubernetes cluster</b> (namespace <code>ping-devops-cmuir</code>), whose OIDC discovery provider is public at <code>https://ai-demo.ping-devops.com/spire/keys</code> (issuer <code>https://spire.ai-demo.ping-devops.com</code>). Privilege NHI <code>spiffe-issuer-lab</code> pins issuer, subject and JWKS URI; agent key <code>spiffe-lab</code> (custodian = the NHI) is granted on the MCP door <code>aggregate-limited</code> via pacpolicy <code>spiffe-lab-aggregate-limited</code>. Evidence text below; no token or key values are reproduced anywhere on this page.</div>
 </section>
 
 <section>
@@ -31,35 +35,35 @@
     <tr><th>Need</th><th>Detail</th></tr>
     <tr><td>Privilege console admin</td><td>Can create Federated Identities, agent keys and grants.</td></tr>
     <tr><td>An MCP door (app) to protect</td><td>An MCP app already registered on the gateway, with at least one tool.</td></tr>
-    <tr><td>A SPIFFE issuer with a public JWKS</td><td>An HTTPS JWKS URL the gateway can reach, e.g. SPIRE's OIDC discovery provider exposed publicly, or a small purpose-built issuer. It must sign RS256 or ES256 JWT-SVIDs.</td></tr>
+    <tr><td>A SPIFFE issuer with a public JWKS</td><td>For the real run: <b>SPIRE</b> deployed in the SE cluster with its OIDC discovery provider routed publicly (ours: <code>https://ai-demo.ping-devops.com/spire/keys</code>). It signs RS256 or ES256 JWT-SVIDs.</td></tr>
   </table>
 </section>
 
 <section class="step">
-  <h2>Stand up an issuer that mints JWT-SVIDs</h2>
-  <p>It must be able to mint three tokens, all with a short lifetime (the identity caps <code>exp &minus; iat</code>):</p>
+  <h2>Stand up an issuer that mints JWT-SVIDs &mdash; SPIRE in the SE cluster (done)</h2>
+  <p>The real run uses <b>SPIRE 1.7.2</b> in namespace <code>ping-devops-cmuir</code>. Its OIDC discovery provider is exposed through the demo ingress, so the public JWKS is <code>https://ai-demo.ping-devops.com/spire/keys</code> and the token <code>iss</code> is <code>https://spire.ai-demo.ping-devops.com</code>. It mints all three tokens with a short lifetime (the identity caps <code>exp &minus; iat</code> at 3600 s):</p>
   <table>
     <tr><th>Token</th><th><code>iss</code></th><th><code>sub</code></th><th><code>aud</code></th><th>signed by</th></tr>
-    <tr><td>valid</td><td>the trusted issuer</td><td><code>spiffe://&lt;trust-domain&gt;/ns/&lt;ns&gt;/sa/&lt;agent&gt;</code></td><td>the door URL</td><td>a key in the published JWKS</td></tr>
-    <tr><td>mismatched</td><td>the trusted issuer</td><td>a <i>different</i> SPIFFE ID</td><td>the door URL</td><td>a key in the published JWKS</td></tr>
-    <tr><td>untrusted</td><td>an unregistered issuer</td><td>the valid SPIFFE ID</td><td>the door URL</td><td>a key <b>not</b> in the trusted JWKS</td></tr>
+    <tr><td>valid</td><td><code>https://spire.ai-demo.ping-devops.com</code></td><td><code>spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent</code></td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code></td><td>a key in the published JWKS</td></tr>
+    <tr><td>mismatched</td><td><code>https://spire.ai-demo.ping-devops.com</code></td><td><code>spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/other-agent</code> (a different registered SPIRE workload)</td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code></td><td>a key in the published JWKS</td></tr>
+    <tr><td>untrusted</td><td><code>https://spire.ai-demo.ping-devops.com</code></td><td>the valid SPIFFE ID</td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code></td><td>a key <b>not</b> in the trusted JWKS</td></tr>
   </table>
   <figure class="shot" data-file="30-01-issuer-jwks.png"><img src="img/30-01-issuer-jwks.png" alt="Issuer JWKS endpoint" onerror="this.parentNode.classList.add('missing')"><figcaption>The issuer's public JWKS URL returning keys (browser or <code>curl</code>). Public keys only.</figcaption></figure>
 </section>
 
 <section class="step">
-  <h2>Create the Federated Identity</h2>
-  <p><span class="tag unverified">console steps UNVERIFIED</span> The console menu path for Federated Identities has not been walked on our tenant; the fields below come from the console's API schema. Record the real menu path with the screenshot. The fields:</p>
+  <h2>Create the Federated Identity (done &mdash; console API)</h2>
+  <p>On our tenant the identity <code>spiffe-issuer-lab</code> was created and updated via the console API. The real values:</p>
   <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>Name</td><td>for example <code>spiffe-agent-runner</code></td></tr>
+    <tr><th>Field</th><th>Value (real run)</th></tr>
+    <tr><td>Name</td><td><code>spiffe-issuer-lab</code></td></tr>
     <tr><td>Enabled</td><td>on (the only kill switch)</td></tr>
     <tr><td>Platform</td><td><code>spiffe</code> (a UI hint only; never used for verification)</td></tr>
-    <tr><td>Issuer</td><td>the exact <code>iss</code> your issuer puts in the token</td></tr>
-    <tr><td>Subject</td><td>the SPIFFE ID, e.g. <code>spiffe://trust.example/ns/payments/sa/agent-runner</code> (leave "allow any subject" off)</td></tr>
-    <tr><td>Audience</td><td>the door URL (mandatory: an unbound token is replayable elsewhere)</td></tr>
-    <tr><td>JWKS URI</td><td>the issuer's public JWKS URL from step 1</td></tr>
-    <tr><td>Max token lifetime</td><td>for example <code>300</code> seconds</td></tr>
+    <tr><td>Issuer</td><td><code>https://spire.ai-demo.ping-devops.com</code></td></tr>
+    <tr><td>Subject</td><td><code>spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent</code> (leave "allow any subject" off)</td></tr>
+    <tr><td>Audience</td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code> (mandatory: an unbound token is replayable elsewhere)</td></tr>
+    <tr><td>JWKS URI</td><td><code>https://ai-demo.ping-devops.com/spire/keys</code></td></tr>
+    <tr><td>Max token lifetime</td><td><code>3600</code> seconds</td></tr>
     <tr><td>Scopes</td><td><code>mcp</code> only</td></tr>
   </table>
   <p>API form (same fields, from the swagger schema <code>imodelNonHumanIdentitySpec</code>; confirm against your tenant's swagger before use):</p>
@@ -69,17 +73,17 @@
     "Scopes": ["mcp"],
     "Federation": {
       "Platform": "spiffe",
-      "Issuer": "https://&lt;issuer-host&gt;",
-      "Audience": "&lt;door URL&gt;",
-      "Subject": "spiffe://trust.example/ns/payments/sa/agent-runner",
-      "JwksURI": "https://&lt;issuer-host&gt;/.well-known/jwks.json",
-      "MaxTokenLifetimeSec": 300 } } }</code></pre>
+      "Issuer": "https://spire.ai-demo.ping-devops.com",
+      "Audience": "priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka",
+      "Subject": "spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent",
+      "JwksURI": "https://ai-demo.ping-devops.com/spire/keys",
+      "MaxTokenLifetimeSec": 3600 } } }</code></pre>
   <figure class="shot" data-file="30-02-federated-identity-form.png"><img src="img/30-02-federated-identity-form.png" alt="Federated Identity form" onerror="this.parentNode.classList.add('missing')"><figcaption>The Federated Identity filled in, with the console menu path visible.</figcaption></figure>
 </section>
 
 <section class="step">
-  <h2>Put an agent key behind the identity and grant the door</h2>
-  <p>A Federated Identity does not authenticate anyone by itself. Create an <b>agent key whose custodian is the Federated Identity</b>, and select the MCP app (that is the grant). Two refusals to expect if you get it wrong:</p>
+  <h2>Put an agent key behind the identity and grant the door (done)</h2>
+  <p>A Federated Identity does not authenticate anyone by itself. Create an <b>agent key whose custodian is the Federated Identity</b>, and select the MCP app (that is the grant). On our tenant: agent key <code>spiffe-lab</code> with the NHI <code>spiffe-issuer-lab</code> as custodian, granted on the MCP door <code>aggregate-limited</code> via pacpolicy <code>spiffe-lab-aggregate-limited</code>. Two refusals to expect if you get it wrong:</p>
   <ul>
     <li><code>WorkloadIdentity and a NonHumanIdentity CustodianRef are mutually exclusive</code>: leave the key's own workload identity empty.</li>
     <li><code>CustodianRef and UserRef name different principals</code>: clear the user reference if you cloned a key that had a human custodian.</li>
@@ -90,24 +94,30 @@
 
 <section class="step">
   <h2>Present the three identities to the door</h2>
-  <p>Send each token as the bearer on a <code>tools/list</code> call to <code>https://&lt;gateway-host&gt;/&lt;app&gt;/mcp</code> (initialize first, as any MCP client does). Wait about 4 minutes after creating the objects before the first test.</p>
+  <p>Send each token as the bearer on a <code>tools/list</code> call to <code>https://mcpgw.ai-demo.ping-devops.com/aggregate-limited/mcp</code> (initialize first, as any MCP client does). Wait about 4 minutes after creating the objects before the first test.</p>
   <table>
     <tr><th>Token</th><th>Expect</th><th>Gateway log</th></tr>
-    <tr><td>valid</td><td><code>200</code>, tool list</td><td><code>workload token accepted for key &hellip; issuer=&hellip; subject=spiffe://&hellip;</code></td></tr>
+    <tr><td>valid</td><td><code>200</code>, tool list</td><td><code>workload token accepted for key spiffe-lab issuer=https://spire.ai-demo.ping-devops.com subject=spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent</code></td></tr>
     <tr><td>mismatched</td><td><code>401</code></td><td><code>workload token rejected: &hellip;</code> (names the claim that did not match)</td></tr>
-    <tr><td>untrusted</td><td><code>401</code></td><td><code>workload token rejected: &hellip;</code> (issuer or signature)</td></tr>
+    <tr><td>untrusted</td><td><code>401</code></td><td><code>workload token rejected: signature does not verify against any known key</code></td></tr>
   </table>
+  <p>How the real run minted the SVIDs (from inside the cluster, using the SPIRE agent's Workload API):</p>
+<pre><code>kubectl exec spire-agent-1 -n ping-devops-cmuir -- \
+  /opt/spire/bin/spire-agent api fetch jwt \
+  -socketPath /run/spire/agent-sockets/socket \
+  -audience priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka
+# mismatched variant: add  -spiffeID spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/other-agent</code></pre>
   <figure class="shot" data-file="30-04-valid-svid-200.png"><img src="img/30-04-valid-svid-200.png" alt="Valid JWT-SVID accepted" onerror="this.parentNode.classList.add('missing')"><figcaption>The valid JWT-SVID getting <code>200</code> and a tool list. Decode and show the claims; hide the token.</figcaption></figure>
   <figure class="shot" data-file="30-05-mismatched-401.png"><img src="img/30-05-mismatched-401.png" alt="Mismatched SPIFFE ID refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The mismatched SPIFFE ID getting <code>401</code>.</figcaption></figure>
   <figure class="shot" data-file="30-06-untrusted-401.png"><img src="img/30-06-untrusted-401.png" alt="Untrusted issuer refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The untrusted-issuer token getting <code>401</code>.</figcaption></figure>
 </section>
 
 <section>
-  <h2>Evidence that it was real</h2>
+  <h2>Evidence that it was real (captured 2026-11-19)</h2>
   <ul class="checks">
-    <li>The gateway log shows one <code>workload token accepted</code> line and two <code>workload token rejected</code> lines, with the SPIFFE subject on the accepted one.</li>
-    <li>The identity was created in the console (screenshot with menu path), not in a lab.</li>
-    <li>The three tokens were minted by an issuer whose JWKS the gateway fetched from a public URL.</li>
+    <li><b>Confirmed:</b> the gateway log shows one <code>workload token accepted</code> line naming <code>key spiffe-lab</code>, the SPIRE issuer and the SPIFFE subject, and <code>workload token rejected</code> lines for both negatives (the untrusted-key one says <code>signature does not verify against any known key</code>).</li>
+    <li><b>Confirmed:</b> the identity <code>spiffe-issuer-lab</code>, key <code>spiffe-lab</code> and pacpolicy <code>spiffe-lab-aggregate-limited</code> exist in the console (created via the console API), not in a lab.</li>
+    <li><b>Confirmed:</b> the three tokens were minted by SPIRE in the SE cluster; the gateway fetched the JWKS from the public URL <code>https://ai-demo.ping-devops.com/spire/keys</code>.</li>
   </ul>
   <figure class="shot" data-file="30-07-gateway-log-accepted-rejected.png"><img src="img/30-07-gateway-log-accepted-rejected.png" alt="Gateway log, accepted and rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>Gateway log: the accepted line and the two rejected lines. Redact keys and hosts.</figcaption></figure>
 </section>
@@ -125,6 +135,6 @@
 </section>
 
 </main>
-<footer>Sources: the Privilege console API schema and our NHI setup notes. The console navigation for Federated Identities and the SPIFFE-direct-to-gateway behaviour are not yet verified on our tenant; fix this page with what the first real run shows. Never publish a screenshot that shows a token, a key, a tenant id or a person's name.</footer>
+<footer>Sources: the Privilege console API schema, our NHI setup notes and the 2026-11-19 real run (SPIRE 1.7.2 in the SE cluster, gateway deploy agentless-mcpgw). Text evidence only &mdash; never publish a screenshot that shows a token, a key, a tenant id or a person's name.</footer>
 </body>
 </html>

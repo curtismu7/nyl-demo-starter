@@ -94,9 +94,9 @@
     <table>
       <tr><th>Demo</th><th>Link</th><th>Status</th></tr>
       <tr>
-        <td>Federated Identity LAB &mdash; SPIFFE presets: right ID, wrong workload, untrusted issuer (new negative presets; Live mode for real RS256 verification)</td>
+        <td>Federated Identity LAB &mdash; SPIFFE presets: right ID, wrong workload, untrusted issuer (new negative presets; Live mode for real RS256 verification) &mdash; rehearsal mode; the real run is SPIRE in the cluster</td>
         <td><a href="https://local.ping-devops.com:8443/federated-identity-lab/">local.ping-devops.com:8443/federated-identity-lab/</a></td>
-        <td><span class="badge rehearsal">REHEARSAL ONLY</span></td>
+        <td><span class="badge rehearsal">REHEARSAL ONLY &mdash; real run done separately</span></td>
       </tr>
       <tr>
         <td>Workload Identity LAB &mdash; real PingFederate JWT through the gateway (not SPIFFE-shaped)</td>
@@ -104,7 +104,7 @@
         <td><span class="badge partial">REAL GATEWAY, NOT SPIFFE</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <a href="guides/30-spiffe.html"><b>Step-by-step guide with screenshots</b></a>. In short: create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. A real run additionally needs a SPIFFE issuer minting JWT-SVIDs against a public JWKS (planned).</p>
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/30-spiffe.html"><b>Step-by-step guide with screenshots</b></a>. In short: create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. <b>Real run done 2026-11-19:</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one and refused the negatives. The standalone lab remains the rehearsal mode.</p>
   </div>
 
   <div class="card">
@@ -114,9 +114,10 @@
       <tr><th>Item</th><th>Real run status</th></tr>
       <tr><td>#28 A2A</td><td>Not yet real. Needs the Privilege apps and agents, and a worker the gateway can reach.</td></tr>
       <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). The approve, deny and expire run with PingID is not yet done.</td></tr>
-      <tr><td>#30 SPIFFE</td><td>Not yet real. Needs a SPIFFE issuer with a public JWKS and a Federated Identity.</td></tr>
+      <tr><td>#30 SPIFFE</td><td><b>DONE &mdash; real run 2026-11-19.</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one (<code>200</code> + tool list) and refused the mismatched SPIFFE ID and the untrusted key (<code>401</code>). Gateway log captured. The standalone lab remains the rehearsal mode.</td></tr>
     </table>
     <p class="note">Labs only answer while their container runs (lab-proxy routes by container name). If a link 404s: <code>cd ~/Development/AI-DEMO-Standalone/standalone/&lt;lab&gt; &amp;&amp; docker compose up -d</code>. Open each slug with a trailing slash.</p>
+    <p class="note"><b>Lab containers vs real mode:</b> for #30 the standalone <code>spiffe-issuer-LAB</code> remains the rehearsal mode; the SPIRE instance in the SE cluster is the real mode (see <a href="guides/30-spiffe.html">guide #30</a>).</p>
   </div>
 
 </main>
