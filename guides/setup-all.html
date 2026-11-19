@@ -139,6 +139,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://&lt;gateway&gt;/&lt;wo
       The detail page should read Active, Validation Valid, "1 refusal, asks a human".</li>
   </ol>
 
+  <div class="warn"><b>Four things that stopped us on 2026-11-19:</b> (1) tenant MFA was off, so nothing could prompt PingID; (2) a hold sends no notification, the PingID prompt appears only when the approver clicks Approve; (3) the approver must be the account signed in to the console, and the policy should name that account (one earlier request was approved by another account, with no PingID); (4) a policy created through the API needs <code>State: Active</code> or the gateway only shadows it. Also, an agent key gets a bare 403 on a door set to user-token authentication. Details in <a href="29-human-approval.html">guide #29</a>.</div>
+
   <h3>Check (all three paths)</h3>
   <table>
     <tr><th>Path</th><th>Do</th><th>Expect</th></tr>

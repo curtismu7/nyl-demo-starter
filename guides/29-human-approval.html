@@ -113,6 +113,18 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 </section>
 
 <section>
+  <h2>Gotchas found running it on our tenant (2026-11-19)</h2>
+  <table>
+    <tr><th>Gotcha</th><th>What to do</th></tr>
+    <tr><td><b>Tenant MFA was off</b> (<code>EnableMFA: false</code>) and nothing could prompt PingID.</td><td>Turn it on first (the step above). It is tenant-wide: every admin and approval sign-in then asks for MFA, so check that your other demo accounts have a device.</td></tr>
+    <tr><td><b>A hold sends no notification</b> to anyone. The held request just sits under Awaiting.</td><td>The PingID push appears when the approver clicks <b>Approve</b> and the tenant steps up MFA. No push-only approval surface was found; the other channels are chat integrations.</td></tr>
+    <tr><td><b>The approver must be the signed-in console user.</b> One earlier request was approved by a different account (channel <code>chat</code>, no PingID).</td><td>Sign in to the console as the account whose phone you want to push to, and name that account in the policy's approvers. Afterwards check the request's events: the channel and assurance show how it was really approved.</td></tr>
+    <tr><td><b>A policy created through the API is only a candidate</b> if its <code>State</code> is empty: the gateway logs <code>shadowing 1 candidate policies</code> and never holds anything.</td><td>Set <code>State: Active</code> (the console does this when you save from the UI).</td></tr>
+    <tr><td><b>An agent key gets a bare <code>403</code></b> on a door set to <i>user-token</i> authentication, before any policy runs.</td><td>Use a door the key can reach, or call as a signed-in user. In an aggregate door, a member that needs the caller's assertion fails with <code>-32603</code>; pick a member that does not.</td></tr>
+  </table>
+</section>
+
+<section>
   <h2>Timing at a glance</h2>
   <table>
     <tr><th>Window</th><th>Value</th><th>If you miss it</th></tr>
@@ -139,7 +151,8 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
     <tr><th>You see</th><th>Cause</th></tr>
     <tr><td>Nothing under Awaiting</td><td>Policy not Active, MCP server name does not match, or Target names a different tool.</td></tr>
     <tr><td>The tool is never held</td><td>The call is not going through the gateway URL, or the caller/condition does not match.</td></tr>
-    <tr><td>No PingID prompt</td><td>Tenant MFA not Enabled, phone not paired, or the approver is not the signed-in account.</td></tr>
+    <tr><td>No PingID prompt</td><td>Tenant MFA not Enabled, phone not paired, nobody has clicked Approve yet (a hold sends no push), or the approver is not the signed-in account.</td></tr>
+    <tr><td>Policy saved but never holds; log says <code>shadowing 1 candidate policies</code></td><td>The policy's <code>State</code> is empty. Set it to Active.</td></tr>
     <tr><td>Approved but the call still fails</td><td>The 90 s retry window passed, or the first retry already used the one-transaction grant.</td></tr>
     <tr><td>Approver cannot decide</td><td>"Who may approve" excludes them.</td></tr>
   </table>
