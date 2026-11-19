@@ -106,7 +106,7 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 
   <h3>Deny</h3>
   <p>Make a second protected call. In <b>HITL Requests</b> choose <b>Reject</b> (on the PingID prompt, "No, it's not me" also rejects). The request moves to <b>Rejected</b> and a retry is refused again.</p>
-  <figure class="shot" data-file="29-09-rejected.png"><img src="img/29-09-rejected.png" alt="Request rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>The request under Rejected and the retry still refused.</figcaption></figure>
+  <figure class="shot" data-file="29-09-rejected.png"><img src="img/29-09-rejected.png" alt="Request rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>A real rejected request (tenant record view): Rejected by the approver with a reason, and the identical call is refused with HTTP <code>400</code> and not held again.</figcaption></figure>
 
   <h3>Timeout</h3>
   <p>Make a third protected call and <b>do nothing</b>. After the request window (120 s here) it moves to <b>Expired</b>. Approving it afterwards is refused. A decided record cannot be changed: approve, reject and expiry are all terminal.</p>
@@ -120,6 +120,7 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
     <tr><td><b>Tenant MFA was off</b> (<code>EnableMFA: false</code>) and nothing could prompt PingID.</td><td>Turn it on first (the step above). It is tenant-wide: every admin and approval sign-in then asks for MFA, so check that your other demo accounts have a device.</td></tr>
     <tr><td><b>A hold sends no notification</b> to anyone. The held request just sits under Awaiting.</td><td>The PingID push appears when the approver clicks <b>Approve</b> and the tenant steps up MFA. No push-only approval surface was found; the other channels are chat integrations.</td></tr>
     <tr><td><b>The approver must be the signed-in console user.</b> One earlier request was approved by a different account (channel <code>chat</code>, no PingID).</td><td>Sign in to the console as the account whose phone you want to push to, and name that account in the policy's approvers. Afterwards check the request's events: the channel and assurance show how it was really approved.</td></tr>
+    <tr><td><b>A rejected request is final.</b> The identical call is refused (HTTP <code>400</code>, "the same request will not be held again") instead of being held again.</td><td>To test the approve path after a reject, change the call (for example a different argument) so it is a new request.</td></tr>
     <tr><td><b>A policy created through the API is only a candidate</b> if its <code>State</code> is empty: the gateway logs <code>shadowing 1 candidate policies</code> and never holds anything.</td><td>Set <code>State: Active</code> (the console does this when you save from the UI).</td></tr>
     <tr><td><b>An agent key gets a bare <code>403</code></b> on a door set to <i>user-token</i> authentication, before any policy runs.</td><td>Use a door the key can reach, or call as a signed-in user. In an aggregate door, a member that needs the caller's assertion fails with <code>-32603</code>; pick a member that does not.</td></tr>
   </table>
