@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up #29: human-in-the-loop approval in Privilege</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<header>
+  <h1>#29 Human-in-the-loop approval: set up on PingOne Privilege</h1>
+  <p>A protected action that needs a person to approve it, with approve, deny and timeout paths. &middot; <a href="../index.html">back to the demo starter</a></p>
+</header>
+<main>
+
+<section>
+  <h2 style="margin-bottom:6px">What this proves</h2>
+  <p>The test: <i>configure a protected action requiring approval; test approve, deny and timeout paths.</i> An MCP tool call that passes through the Privilege gateway is <b>held</b> by a policy. A person approves it and the approval is confirmed with <b>PingID</b> (push or passcode). The agent then retries and the call goes through.</p>
+  <pre><code>MCP client --&gt; Privilege gateway --&gt; policy: "Require human approval"
+                                       |  HTTP 403 pending_approval
+                                       v
+        approver: HITL Requests page + PingID prompt --&gt; Approved
+                                       |
+MCP client retries within the window --+--&gt; call succeeds</code></pre>
+  <div class="warn"><b>It must be a real run.</b> The lab simulations of hold, approve, deny and expire are rehearsal only. The approval in this guide happens in the Privilege console with PingID on a real phone.</div>
+</section>
+
+<section>
+  <h2 style="margin-bottom:6px">Before you start</h2>
+  <table>
+    <tr><th>Need</th><th>Detail</th></tr>
+    <tr><td>Privilege console admin</td><td>Signed in as an admin of a tenant you own (the MFA setting in step 2 is tenant-wide).</td></tr>
+    <tr><td>PingID on the approver's phone</td><td>Paired to the approver's account. The app's Account screen reads: "This account will authenticate you by sending a notification for you to approve or you can use the passcode."</td></tr>
+    <tr><td>An MCP server behind the gateway</td><td>Reached through the gateway URL with an <code>Authorization: Bearer</code> key or user sign-in.</td></tr>
+    <tr><td>An MCP client</td><td>Any client that can call a tool through the gateway and show the response.</td></tr>
+  </table>
+</section>
+
+<section class="step">
+  <h2>Pair PingID for the approver</h2>
+  <p>Manage the approver's MFA devices in the account page (<i>Authentication &mdash; My Account</i>). Pair the phone, then confirm the PingID app shows the approver's account on its <b>Account</b> screen. Never share the passcode or approve a prompt you did not start.</p>
+  <figure class="shot" data-file="29-01-pingid-paired.png"><img src="img/29-01-pingid-paired.png" alt="PingID app Account screen" onerror="this.parentNode.classList.add('missing')"><figcaption>PingID app, Account screen, showing the approver's account. <b>Crop out the passcode.</b></figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Turn MFA on for the tenant</h2>
+  <ol>
+    <li>Console: user menu (top right) &rarr; <b>Settings</b>.</li>
+    <li><b>Tenant &rarr; Profile &rarr; Tenant Information &rarr; Edit</b>.</li>
+    <li>Set <b>MFA</b> to <b>Enabled</b> (the reference recording shows <code>Enabled (120 minutes)</code>), then save.</li>
+  </ol>
+  <figure class="shot" data-file="29-02-tenant-mfa-enabled.png"><img src="img/29-02-tenant-mfa-enabled.png" alt="Tenant MFA enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Tenant Information with MFA Enabled. <b>Hide the tenant id.</b></figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Create the human-approval AI policy</h2>
+  <p>Console: <b>AI Policies</b> &rarr; create a policy.</p>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Name</td><td><code>opensearch-hitl</code> (any name; it cannot change after saving)</td></tr>
+    <tr><td>State</td><td><b>Active</b></td></tr>
+    <tr><td>Authoring tab</td><td><b>Build a rule</b> (other tabs: From a template, Write Cedar)</td></tr>
+    <tr><td>Gateway / when</td><td><b>MCP tool call</b>, <b>On the request</b></td></tr>
+    <tr><td>Outcome</td><td><b>Require human approval</b></td></tr>
+    <tr><td>MCP server</td><td>The server name the gateway uses (<code>opensearch</code> in the reference)</td></tr>
+    <tr><td>Caller</td><td>Any caller (or a person or group)</td></tr>
+    <tr><td>Target</td><td>One named tool (<code>IndexMappingTool</code>) or Any tool</td></tr>
+    <tr><td>Grant shape</td><td><b>This transaction only</b></td></tr>
+    <tr><td>Approvals needed</td><td><code>1</code></td></tr>
+    <tr><td>Agent retry window</td><td><code>90</code> seconds</td></tr>
+    <tr><td>Request stays open</td><td><code>120</code> seconds (blank = one hour)</td></tr>
+    <tr><td>Who may approve</td><td>Anyone with admin rights (or a group or user)</td></tr>
+    <tr><td>Reason shown to the caller</td><td>for example <code>Above Demo HITL</code></td></tr>
+  </table>
+  <p>The page previews the Cedar it will save:</p>
+<pre><code>@grant("transaction")
+@ttl("90")
+@request_ttl("120")
+@reason("Above Demo HITL")
+forbid (
+  principal,
+  action == Action::"mcp:InvokeUnattended",
+  resource == Tool::"IndexMappingTool"
+)
+when   { context.app == "opensearch" }
+unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };</code></pre>
+  <p>Save. The detail page should show State <b>Active</b>, Validation <b>Valid</b>, Effect "1 refusal, asks a human". The short windows keep a demo from waiting; lengthen them for real use.</p>
+  <figure class="shot" data-file="29-03-policy-builder.png"><img src="img/29-03-policy-builder.png" alt="AI policy builder, Require human approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The policy builder with the values above.</figcaption></figure>
+  <figure class="shot" data-file="29-04-policy-active-valid.png"><img src="img/29-04-policy-active-valid.png" alt="Policy detail, Active and Valid" onerror="this.parentNode.classList.add('missing')"><figcaption>Saved policy: Active, Valid, "asks a human".</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Run the three paths</h2>
+  <h3>Approve</h3>
+  <ol>
+    <li>In the MCP client, call the protected tool. It is refused with HTTP <code>403</code>, JSON-RPC <code>-32600</code>, and <code>status: pending_approval</code>, an <code>instruction_id</code> and <code>retry_header: X-Procyon-Approval-Id</code>.</li>
+    <li>Console: <b>HITL Requests</b> &rarr; <b>Awaiting A Decision</b> (tabs: Awaiting, Approved, Rejected, Expired, All). Approve it.</li>
+    <li>PingID asks for confirmation: <b>push</b> ("Are you trying to sign on?", approve with the blue button) or the 6-digit <b>passcode</b>.</li>
+    <li>Re-run the tool within <b>90 seconds</b>. It now succeeds and the request moves to <b>Approved</b>.</li>
+  </ol>
+  <figure class="shot" data-file="29-05-held-403-pending.png"><img src="img/29-05-held-403-pending.png" alt="Held call, 403 pending_approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The held call: <code>403</code>, <code>-32600</code>, <code>pending_approval</code>, <code>instruction_id</code>.</figcaption></figure>
+  <figure class="shot" data-file="29-06-hitl-awaiting.png"><img src="img/29-06-hitl-awaiting.png" alt="HITL Requests, Awaiting" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, the request under Awaiting A Decision.</figcaption></figure>
+  <figure class="shot" data-file="29-07-pingid-push.png"><img src="img/29-07-pingid-push.png" alt="PingID push prompt" onerror="this.parentNode.classList.add('missing')"><figcaption>The PingID push prompt on the phone.</figcaption></figure>
+  <figure class="shot" data-file="29-08-approved-retry-succeeds.png"><img src="img/29-08-approved-retry-succeeds.png" alt="Request approved, retry succeeds" onerror="this.parentNode.classList.add('missing')"><figcaption>Request in Approved and the retried call returning a result.</figcaption></figure>
+
+  <h3>Deny</h3>
+  <p>Make a second protected call. In <b>HITL Requests</b> choose <b>Reject</b> (on the PingID prompt, "No, it's not me" also rejects). The request moves to <b>Rejected</b> and a retry is refused again.</p>
+  <figure class="shot" data-file="29-09-rejected.png"><img src="img/29-09-rejected.png" alt="Request rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>The request under Rejected and the retry still refused.</figcaption></figure>
+
+  <h3>Timeout</h3>
+  <p>Make a third protected call and <b>do nothing</b>. After the request window (120 s here) it moves to <b>Expired</b>. Approving it afterwards is refused. A decided record cannot be changed: approve, reject and expiry are all terminal.</p>
+  <figure class="shot" data-file="29-10-expired.png"><img src="img/29-10-expired.png" alt="Request expired" onerror="this.parentNode.classList.add('missing')"><figcaption>The request under Expired.</figcaption></figure>
+</section>
+
+<section>
+  <h2>Timing at a glance</h2>
+  <table>
+    <tr><th>Window</th><th>Value</th><th>If you miss it</th></tr>
+    <tr><td>Request stays open for a decision</td><td>120 s</td><td>Moves to Expired; the agent must ask again.</td></tr>
+    <tr><td>Agent retry window after approval</td><td>90 s</td><td>The approval lapses; start again.</td></tr>
+    <tr><td>Approval scope</td><td>one transaction</td><td>A second identical call needs a fresh approval.</td></tr>
+    <tr><td>MFA confirmation validity</td><td>tenant setting</td><td>Next approval asks for MFA again.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Evidence that it was real</h2>
+  <ul class="checks">
+    <li>The HITL Requests page shows one request in each of Approved, Rejected and Expired, with times and the approver.</li>
+    <li>The held response carried a real <code>instruction_id</code> (<code>ins_&hellip;</code>) and the retry used <code>X-Procyon-Approval-Id</code>.</li>
+    <li>The approval required a PingID confirmation (screenshot of the prompt).</li>
+  </ul>
+  <div class="warn"><span class="tag unverified">UNVERIFIED</span> On the tenant we use, it is not yet confirmed whether a held call returns HTTP <code>403 -32600</code> (as in the reference recording) or a <code>200</code> whose text says <code>pending_approval</code>. Run the first test call and record which one you get; the screenshot in step 4 settles it.</div>
+</section>
+
+<section>
+  <h2>If it fails</h2>
+  <table>
+    <tr><th>You see</th><th>Cause</th></tr>
+    <tr><td>Nothing under Awaiting</td><td>Policy not Active, MCP server name does not match, or Target names a different tool.</td></tr>
+    <tr><td>The tool is never held</td><td>The call is not going through the gateway URL, or the caller/condition does not match.</td></tr>
+    <tr><td>No PingID prompt</td><td>Tenant MFA not Enabled, phone not paired, or the approver is not the signed-in account.</td></tr>
+    <tr><td>Approved but the call still fails</td><td>The 90 s retry window passed, or the first retry already used the one-transaction grant.</td></tr>
+    <tr><td>Approver cannot decide</td><td>"Who may approve" excludes them.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>Source: a screen recording of the setup (2 min 55 s) and the Privilege console. Steps follow it; screenshots are added as each step is run. Never publish a screenshot that shows a passcode, a key, a tenant id or a person's name.</footer>
+</body>
+</html>

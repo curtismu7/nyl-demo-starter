@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up #28: agent-to-agent (A2A) in Privilege</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<header>
+  <h1>#28 Agent-to-agent (A2A) calls: set up on PingOne Privilege</h1>
+  <p>Two authorized test agents talk through the gateway's A2A path, and an unauthorized agent is refused. &middot; <a href="../index.html">back to the demo starter</a></p>
+</header>
+<main>
+
+<section>
+  <h2 style="margin-bottom:6px">What this proves</h2>
+  <p>The test: <i>configure two authorized test agents to communicate through the supported A2A path.</i> In Privilege that path is the gateway's Remote Agent route (<code>/&lt;app&gt;/a2a</code>). Each agent holds its own Agent Access key; the gateway checks the key, the <code>a2a</code> scope and the grant on every hop.</p>
+  <pre><code>main agent  --(1) A2A message/send, main key--&gt;  gateway --&gt; worker agent
+main agent  --(2) model call, main key---------&gt;  gateway --&gt; model provider
+worker      --(3) model call, worker key-------&gt;  gateway --&gt; model provider
+worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</code></pre>
+  <div class="warn"><b>It must be a real run.</b> The mock A2A Lab on the starter page rehearses the story; it does not exercise Privilege. This guide is the real setup. Use the demo lab <code>privilege-a2a-anthropic-demo-LAB</code> as the two agents.</div>
+</section>
+
+<section>
+  <h2 style="margin-bottom:6px">Before you start</h2>
+  <table>
+    <tr><th>Need</th><th>Detail</th></tr>
+    <tr><td>Privilege console admin</td><td>Can create Agentic Apps and Agent Registry entries.</td></tr>
+    <tr><td>Two custodians</td><td>Two different people (or accounts) to be custodians of the two agents. Remote-agent grants follow the custodian, so one custodian for both agents lets them reach each other's agents.</td></tr>
+    <tr><td>A model provider key</td><td>Creating an <code>llm</code>-scoped agent requires the real upstream provider key; Privilege holds it server-side and the agent only keeps the virtual key.</td></tr>
+    <tr><td>A place the gateway can reach</td><td>The worker agent and MCP server must be reachable from the gateway's mesh cluster. A process on <code>127.0.0.1</code> cannot be reached by a hosted gateway. The lab ships <code>k8s/deployment.yaml</code> for this.</td></tr>
+  </table>
+</section>
+
+<section class="step">
+  <h2>Deploy the worker agent and MCP server</h2>
+  <p>From the lab repo, apply <code>k8s/deployment.yaml</code> to the namespace the gateway mesh can reach. This starts two services: <code>workeragentdemo</code> (the worker agent, A2A on <code>/a2a</code>) and <code>mcpdemo</code> (the MCP server, <code>/mcp</code>). Registering the apps before they run is allowed; discovery in step 3 needs the MCP backend up.</p>
+  <figure class="shot" data-file="28-01-k8s-services-running.png"><img src="img/28-01-k8s-services-running.png" alt="Worker and MCP services running" onerror="this.parentNode.classList.add('missing')"><figcaption>Both services Running in the cluster (pods or service list).</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Register the two apps</h2>
+  <p>Console: <b>Agentic Apps &rarr; Add Application</b>, on the mesh cluster of the gateway that serves traffic.</p>
+  <table>
+    <tr><th>Field</th><th><code>workeragentdemo</code></th><th><code>mcpdemo</code></th></tr>
+    <tr><td>Type</td><td><b>Remote Agent</b></td><td><b>MCP</b></td></tr>
+    <tr><td>Backend</td><td><code>http://workeragentdemo.&lt;namespace&gt;.svc.cluster.local</code></td><td><code>http://mcpdemo.&lt;namespace&gt;.svc.cluster.local</code></td></tr>
+    <tr><td>Path</td><td><code>/a2a</code></td><td><code>/mcp</code></td></tr>
+    <tr><td>Auth Mode</td><td>None (never <i>Pass Agent Token</i>: it refuses key callers)</td><td>None</td></tr>
+  </table>
+  <figure class="shot" data-file="28-02-add-remote-agent-app.png"><img src="img/28-02-add-remote-agent-app.png" alt="Add Application, Remote Agent" onerror="this.parentNode.classList.add('missing')"><figcaption>Add Application: <code>workeragentdemo</code> filled in as a Remote Agent.</figcaption></figure>
+  <figure class="shot" data-file="28-03-add-mcp-app.png"><img src="img/28-03-add-mcp-app.png" alt="Add Application, MCP" onerror="this.parentNode.classList.add('missing')"><figcaption>Add Application: <code>mcpdemo</code> filled in as an MCP app.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Create the worker's agent</h2>
+  <p>Console: <b>Agent Privilege &rarr; Agent Registry &rarr; Add Agent</b>. The name cannot be changed later.</p>
+  <ul>
+    <li><b>Identity &amp; Access:</b> a name, the first custodian, an expiry, scopes <code>llm</code> + <code>mcp</code>.</li>
+    <li><b>Gateway &amp; Apps:</b> one provider, one allowed model, <b>MCP Servers &rarr; <code>mcpdemo</code></b>, then <b>Configure Tools</b> and allow each tool. If the tool list is empty, save the <code>mcpdemo</code> app again to re-run discovery now that its backend is up.</li>
+    <li><b>Runtime Protection:</b> leave the defaults, or set the AI Guard thresholds you want to demonstrate.</li>
+    <li><b>Review &amp; Create:</b> copy the key now and treat it as a secret.</li>
+  </ul>
+  <figure class="shot" data-file="28-04-worker-agent-scopes-apps.png"><img src="img/28-04-worker-agent-scopes-apps.png" alt="Worker agent, scopes and apps" onerror="this.parentNode.classList.add('missing')"><figcaption>Worker agent: scopes <code>llm</code> + <code>mcp</code>, MCP server <code>mcpdemo</code> selected, tools allowed. <b>Hide the key.</b></figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Create the main agent</h2>
+  <p>Same wizard, with a <b>different custodian</b>: scopes <code>llm</code> + <code>a2a</code>, a different allowed model, <b>Remote Agents &rarr; <code>workeragentdemo</code></b>. Selecting the app is the grant; saving auto-creates the policy for the custodian.</p>
+  <figure class="shot" data-file="28-05-main-agent-remote-agent-grant.png"><img src="img/28-05-main-agent-remote-agent-grant.png" alt="Main agent with remote agent selected" onerror="this.parentNode.classList.add('missing')"><figcaption>Main agent: scopes <code>llm</code> + <code>a2a</code>, Remote Agent <code>workeragentdemo</code> selected.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Create a third agent with no grant (the unauthorized one)</h2>
+  <p>Create one more agent with scope <code>a2a</code> and <b>no Remote Agent selected</b>. It is the "unauthorized agent" for the refusal test. Use a different custodian again.</p>
+  <figure class="shot" data-file="28-06-unauthorized-agent.png"><img src="img/28-06-unauthorized-agent.png" alt="Agent with a2a scope and no remote agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The third agent: <code>a2a</code> scope, Remote Agents empty.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Turn on agent-card discovery</h2>
+  <p>On the <code>workeragentdemo</code> app, switch on <b>Discover A2A agent card</b> once the worker is running.</p>
+  <figure class="shot" data-file="28-07-discover-agent-card.png"><img src="img/28-07-discover-agent-card.png" alt="Discover A2A agent card enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Discover A2A agent card enabled on <code>workeragentdemo</code>.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Store the keys and point the lab at the gateway</h2>
+  <p>Paste each key <b>once</b> (a doubled key is refused as <code>invalid virtual key</code>). The main key goes in the lab's <code>.env</code>; the worker key goes in the cluster Secret the worker reads.</p>
+<pre><code>MAIN_AGENT_KEY=&lt;main agent key&gt;
+WORKER_AGENT_KEY=&lt;worker agent key, cluster Secret&gt;
+ANTHROPIC_BASE_URL=https://&lt;gateway-host&gt;/llm/anthropic
+MAIN_AGENT_MODEL=&lt;model id allowed on the main key&gt;
+WORKER_AGENT_MODEL=&lt;model id allowed on the worker key&gt;
+WORKER_A2A_URL=https://&lt;gateway-host&gt;/workeragentdemo/a2a
+WORKER_TRACE_URL=https://&lt;gateway-host&gt;/workeragentdemo/trace
+WORKER_PUBLIC_URL=https://&lt;gateway-host&gt;/workeragentdemo/a2a/jsonrpc</code></pre>
+  <p>Restart the lab. The main agent's startup log should now say it uses the gateway, not <code>direct Anthropic</code>.</p>
+  <div class="warn">Changes to apps and policies take about <b>4 minutes</b> to reach the gateway. Do not conclude a failure sooner.</div>
+</section>
+
+<section>
+  <h2>Run the test</h2>
+  <ol>
+    <li><b>Authorized:</b> ask <i>"Review Carol Nguyen's access"</i>. The main agent delegates to the worker over A2A and the worker reads data through MCP. Expect an answer.</li>
+    <li><b>Unauthorized:</b> send the same A2A <code>message/send</code> with the third agent's key:
+<pre><code>curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://&lt;gateway-host&gt;/workeragentdemo/a2a/jsonrpc" \
+  -H "Authorization: Bearer $THIRD_AGENT_KEY" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"role":"user","messageId":"m1","parts":[{"kind":"text","text":"Hello"}]}}}'</code></pre>
+    Expect <code>403</code>. Repeat with the main key: expect <code>200</code>.</li>
+  </ol>
+  <figure class="shot" data-file="28-08-authorized-answer.png"><img src="img/28-08-authorized-answer.png" alt="Authorized A2A answer" onerror="this.parentNode.classList.add('missing')"><figcaption>The authorized question answered, with the A2A hop visible in the trace.</figcaption></figure>
+  <figure class="shot" data-file="28-09-unauthorized-403.png"><img src="img/28-09-unauthorized-403.png" alt="Unauthorized agent refused with 403" onerror="this.parentNode.classList.add('missing')"><figcaption>The unauthorized agent's call returning <code>403</code> beside the authorized <code>200</code>.</figcaption></figure>
+</section>
+
+<section>
+  <h2>Evidence that it was real</h2>
+  <ul class="checks">
+    <li>The gateway log (<code>/var/log/procyon/cyonproxy.log</code> in the gateway pod, newest rotated file too) shows the A2A call under the main agent's key, and <code>policy denied</code> for the third agent. A bare <code>403</code> is only explained there.</li>
+    <li>The console's agent activity / audit view shows both agents by name.</li>
+    <li>The lab's startup log shows the gateway URL, not <code>direct Anthropic</code>.</li>
+  </ul>
+  <figure class="shot" data-file="28-10-gateway-log-policy-denied.png"><img src="img/28-10-gateway-log-policy-denied.png" alt="Gateway log lines" onerror="this.parentNode.classList.add('missing')"><figcaption>Gateway log: the allowed A2A call and the <code>policy denied</code> line. Redact keys.</figcaption></figure>
+</section>
+
+<section>
+  <h2>If it fails</h2>
+  <table>
+    <tr><th>You see</th><th>Cause</th></tr>
+    <tr><td><code>401 invalid virtual key</code></td><td>Key typo, doubled paste, revoked or expired.</td></tr>
+    <tr><td>Bare <code>403</code> on the allowed agent</td><td>Remote Agent not selected on that agent, or the app's Auth Mode is <i>Pass Agent Token</i>. Read the gateway log.</td></tr>
+    <tr><td>Agent can reach agents it should not</td><td>Both agents share a custodian.</td></tr>
+    <tr><td><code>200</code> with an empty body</td><td>A gateway node with stale routing; restart that gateway pod.</td></tr>
+    <tr><td>Empty tool list for the worker</td><td>Re-save the <code>mcpdemo</code> app so discovery re-runs with the backend up.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>Sources: the lab README section "Set up on Privilege, in order", and the Privilege NHI setup notes. Steps follow those; screenshots are added as each step is run on a tenant. Never publish a screenshot that shows a key, a tenant id or a person's name.</footer>
+</body>
+</html>

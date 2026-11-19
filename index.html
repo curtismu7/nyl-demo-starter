@@ -51,7 +51,7 @@
         <td><span class="badge owner">OWNER SETUP</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
       <a href="https://github.com/curtismu7/privilege-a2a-anthropic-demo-LAB#set-up-on-privilege-in-order">&ldquo;Set up on Privilege, in order&rdquo;</a>
       &mdash; register <code>workeragentdemo</code> (Remote Agent) + <code>mcpdemo</code> (MCP) apps, create the two agents in the Agent Registry with different custodians, paste the agent keys into the lab <code>.env</code>.</p>
   </div>
@@ -78,11 +78,11 @@
       </tr>
       <tr>
         <td>Real gateway HITL with PingID push / passcode on the owner's phone</td>
-        <td>follow the setup doc on tenant <code>0428ba4f</code></td>
+        <td><a href="guides/29-human-approval.html">follow the setup guide</a></td>
         <td><span class="badge owner">OWNER + PHONE</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <a href="file:///Users/cmuir/Development/PINGID-MCP-HITL-SETUP.md"><code>PINGID-MCP-HITL-SETUP.md</code></a>
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/29-human-approval.html"><b>Step-by-step guide with screenshots</b></a>
       &mdash; pair PingID for the approver, turn MFA on for the tenant, create the human-approval AI policy, test end to end (approve, reject, let one expire).</p>
   </div>
 
@@ -102,12 +102,18 @@
         <td><span class="badge mock">REAL LEG</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. A real run additionally needs a SPIFFE issuer minting JWT-SVIDs against a public JWKS (planned).</p>
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/30-spiffe.html"><b>Step-by-step guide with screenshots</b></a>. In short: create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. A real run additionally needs a SPIFFE issuer minting JWT-SVIDs against a public JWKS (planned).</p>
   </div>
 
   <div class="card">
     <h2>Talking points</h2>
-    <p class="req" style="margin-bottom:8px">All local demos are honest simulations &mdash; the banner on every page says so. The real-gateway rows above need owner-only setup (Privilege admin, agent keys, PingID phone) and are the gap between &ldquo;demoed in simulation&rdquo; and &ldquo;run for real&rdquo;.</p>
+    <p class="req" style="margin-bottom:8px"><b>The deliverable is a real run against a Privilege gateway for each of #28, #29 and #30.</b> The MOCK rows above are rehearsal only: they simulate Privilege on the presenter's own machine and do not count as the test. The rows marked OWNER SETUP and OWNER + PHONE are the real runs, and the guides above are how to set them up.</p>
+    <table>
+      <tr><th>Item</th><th>Real run status</th></tr>
+      <tr><td>#28 A2A</td><td>Not yet real. Needs the Privilege apps and agents, and a worker the gateway can reach.</td></tr>
+      <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). The approve, deny and expire run with PingID is not yet done.</td></tr>
+      <tr><td>#30 SPIFFE</td><td>Not yet real. Needs a SPIFFE issuer with a public JWKS and a Federated Identity.</td></tr>
+    </table>
     <p class="note">Labs only answer while their container runs (lab-proxy routes by container name). If a link 404s: <code>cd ~/Development/AI-DEMO-Standalone/standalone/&lt;lab&gt; &amp;&amp; docker compose up -d</code>. Open each slug with a trailing slash.</p>
   </div>
 

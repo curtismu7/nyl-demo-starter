@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up #30: SPIFFE agent identity in Privilege</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<header>
+  <h1>#30 SPIFFE agent identity: set up on PingOne Privilege</h1>
+  <p>Present a valid SPIFFE identity, then a mismatched and an untrusted one, to the gateway. &middot; <a href="../index.html">back to the demo starter</a></p>
+</header>
+<main>
+
+<section>
+  <h2 style="margin-bottom:6px">What this proves</h2>
+  <p>The test: <i>present a valid test SPIFFE identity and a mismatched or untrusted identity to the gateway.</i> In Privilege this is a <b>Federated Identity</b> (the new display name for Non-Human Identity; the console API object is still <code>NonHumanIdentity</code> at <code>/v1/nonhumanidentities</code>). The agent proves who it is with a short-lived <b>JWT-SVID</b> instead of a static key, and the gateway checks the issuer, the subject (the SPIFFE ID) and the audience.</p>
+  <table>
+    <tr><th>Present</th><th>Expected at the gateway</th></tr>
+    <tr><td>Valid JWT-SVID (right issuer, right SPIFFE ID, right audience)</td><td>accepted, <code>tools/list</code> returns <code>200</code></td></tr>
+    <tr><td>Mismatched: right issuer, a <i>different</i> SPIFFE ID</td><td><code>401</code>, subject mismatch</td></tr>
+    <tr><td>Untrusted: the right SPIFFE ID but signed by an issuer / key the gateway does not trust</td><td><code>401</code>, issuer or signature rejected</td></tr>
+  </table>
+  <div class="warn"><b>It must be a real run, and it is not built yet.</b> The lab simulation of SPIFFE verifies against its own engine only. A real run needs a SPIFFE issuer that mints JWT-SVIDs and publishes a <b>public JWKS the gateway can fetch</b>. Nothing in our labs mints tokens for a public JWKS today, so that issuer is the first thing to build or stand up (step 1). <span class="tag unverified">UNVERIFIED</span> Whether the gateway accepts a SPIFFE JWT-SVID directly has not been run on our tenant; the SPIFFE-to-PingFederate leg is verified, SPIFFE straight to the gateway is not.</div>
+</section>
+
+<section>
+  <h2 style="margin-bottom:6px">Before you start</h2>
+  <table>
+    <tr><th>Need</th><th>Detail</th></tr>
+    <tr><td>Privilege console admin</td><td>Can create Federated Identities, agent keys and grants.</td></tr>
+    <tr><td>An MCP door (app) to protect</td><td>An MCP app already registered on the gateway, with at least one tool.</td></tr>
+    <tr><td>A SPIFFE issuer with a public JWKS</td><td>An HTTPS JWKS URL the gateway can reach, e.g. SPIRE's OIDC discovery provider exposed publicly, or a small purpose-built issuer. It must sign RS256 or ES256 JWT-SVIDs.</td></tr>
+  </table>
+</section>
+
+<section class="step">
+  <h2>Stand up an issuer that mints JWT-SVIDs</h2>
+  <p>It must be able to mint three tokens, all with a short lifetime (the identity caps <code>exp &minus; iat</code>):</p>
+  <table>
+    <tr><th>Token</th><th><code>iss</code></th><th><code>sub</code></th><th><code>aud</code></th><th>signed by</th></tr>
+    <tr><td>valid</td><td>the trusted issuer</td><td><code>spiffe://&lt;trust-domain&gt;/ns/&lt;ns&gt;/sa/&lt;agent&gt;</code></td><td>the door URL</td><td>a key in the published JWKS</td></tr>
+    <tr><td>mismatched</td><td>the trusted issuer</td><td>a <i>different</i> SPIFFE ID</td><td>the door URL</td><td>a key in the published JWKS</td></tr>
+    <tr><td>untrusted</td><td>an unregistered issuer</td><td>the valid SPIFFE ID</td><td>the door URL</td><td>a key <b>not</b> in the trusted JWKS</td></tr>
+  </table>
+  <figure class="shot" data-file="30-01-issuer-jwks.png"><img src="img/30-01-issuer-jwks.png" alt="Issuer JWKS endpoint" onerror="this.parentNode.classList.add('missing')"><figcaption>The issuer's public JWKS URL returning keys (browser or <code>curl</code>). Public keys only.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Create the Federated Identity</h2>
+  <p><span class="tag unverified">console steps UNVERIFIED</span> The console menu path for Federated Identities has not been walked on our tenant; the fields below come from the console's API schema. Record the real menu path with the screenshot. The fields:</p>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Name</td><td>for example <code>spiffe-agent-runner</code></td></tr>
+    <tr><td>Enabled</td><td>on (the only kill switch)</td></tr>
+    <tr><td>Platform</td><td><code>spiffe</code> (a UI hint only; never used for verification)</td></tr>
+    <tr><td>Issuer</td><td>the exact <code>iss</code> your issuer puts in the token</td></tr>
+    <tr><td>Subject</td><td>the SPIFFE ID, e.g. <code>spiffe://trust.example/ns/payments/sa/agent-runner</code> (leave "allow any subject" off)</td></tr>
+    <tr><td>Audience</td><td>the door URL (mandatory: an unbound token is replayable elsewhere)</td></tr>
+    <tr><td>JWKS URI</td><td>the issuer's public JWKS URL from step 1</td></tr>
+    <tr><td>Max token lifetime</td><td>for example <code>300</code> seconds</td></tr>
+    <tr><td>Scopes</td><td><code>mcp</code> only</td></tr>
+  </table>
+  <p>API form (same fields, from the swagger schema <code>imodelNonHumanIdentitySpec</code>; confirm against your tenant's swagger before use):</p>
+<pre><code>POST /api/&lt;tenant&gt;/v1/nonhumanidentities
+{ "Spec": {
+    "Enabled": true,
+    "Scopes": ["mcp"],
+    "Federation": {
+      "Platform": "spiffe",
+      "Issuer": "https://&lt;issuer-host&gt;",
+      "Audience": "&lt;door URL&gt;",
+      "Subject": "spiffe://trust.example/ns/payments/sa/agent-runner",
+      "JwksURI": "https://&lt;issuer-host&gt;/.well-known/jwks.json",
+      "MaxTokenLifetimeSec": 300 } } }</code></pre>
+  <figure class="shot" data-file="30-02-federated-identity-form.png"><img src="img/30-02-federated-identity-form.png" alt="Federated Identity form" onerror="this.parentNode.classList.add('missing')"><figcaption>The Federated Identity filled in, with the console menu path visible.</figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Put an agent key behind the identity and grant the door</h2>
+  <p>A Federated Identity does not authenticate anyone by itself. Create an <b>agent key whose custodian is the Federated Identity</b>, and select the MCP app (that is the grant). Two refusals to expect if you get it wrong:</p>
+  <ul>
+    <li><code>WorkloadIdentity and a NonHumanIdentity CustodianRef are mutually exclusive</code>: leave the key's own workload identity empty.</li>
+    <li><code>CustodianRef and UserRef name different principals</code>: clear the user reference if you cloned a key that had a human custodian.</li>
+  </ul>
+  <p>The gateway log should say <code>upserted workload key &lt;key&gt; issuer=&hellip; subject=&hellip;</code>. If it says <code>rebuilding 0 key(s)</code>, nothing is attached to the identity yet.</p>
+  <figure class="shot" data-file="30-03-agent-key-custodian-nhi.png"><img src="img/30-03-agent-key-custodian-nhi.png" alt="Agent key with the identity as custodian" onerror="this.parentNode.classList.add('missing')"><figcaption>The agent key with the Federated Identity as custodian and the MCP app selected. <b>Hide any key value.</b></figcaption></figure>
+</section>
+
+<section class="step">
+  <h2>Present the three identities to the door</h2>
+  <p>Send each token as the bearer on a <code>tools/list</code> call to <code>https://&lt;gateway-host&gt;/&lt;app&gt;/mcp</code> (initialize first, as any MCP client does). Wait about 4 minutes after creating the objects before the first test.</p>
+  <table>
+    <tr><th>Token</th><th>Expect</th><th>Gateway log</th></tr>
+    <tr><td>valid</td><td><code>200</code>, tool list</td><td><code>workload token accepted for key &hellip; issuer=&hellip; subject=spiffe://&hellip;</code></td></tr>
+    <tr><td>mismatched</td><td><code>401</code></td><td><code>workload token rejected: &hellip;</code> (names the claim that did not match)</td></tr>
+    <tr><td>untrusted</td><td><code>401</code></td><td><code>workload token rejected: &hellip;</code> (issuer or signature)</td></tr>
+  </table>
+  <figure class="shot" data-file="30-04-valid-svid-200.png"><img src="img/30-04-valid-svid-200.png" alt="Valid JWT-SVID accepted" onerror="this.parentNode.classList.add('missing')"><figcaption>The valid JWT-SVID getting <code>200</code> and a tool list. Decode and show the claims; hide the token.</figcaption></figure>
+  <figure class="shot" data-file="30-05-mismatched-401.png"><img src="img/30-05-mismatched-401.png" alt="Mismatched SPIFFE ID refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The mismatched SPIFFE ID getting <code>401</code>.</figcaption></figure>
+  <figure class="shot" data-file="30-06-untrusted-401.png"><img src="img/30-06-untrusted-401.png" alt="Untrusted issuer refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The untrusted-issuer token getting <code>401</code>.</figcaption></figure>
+</section>
+
+<section>
+  <h2>Evidence that it was real</h2>
+  <ul class="checks">
+    <li>The gateway log shows one <code>workload token accepted</code> line and two <code>workload token rejected</code> lines, with the SPIFFE subject on the accepted one.</li>
+    <li>The identity was created in the console (screenshot with menu path), not in a lab.</li>
+    <li>The three tokens were minted by an issuer whose JWKS the gateway fetched from a public URL.</li>
+  </ul>
+  <figure class="shot" data-file="30-07-gateway-log-accepted-rejected.png"><img src="img/30-07-gateway-log-accepted-rejected.png" alt="Gateway log, accepted and rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>Gateway log: the accepted line and the two rejected lines. Redact keys and hosts.</figcaption></figure>
+</section>
+
+<section>
+  <h2>If it fails</h2>
+  <table>
+    <tr><th>You see</th><th>Cause</th></tr>
+    <tr><td>valid token gets <code>401</code>, no <code>workload token</code> log line</td><td>No agent key behind the identity (<code>rebuilding 0 key(s)</code>), or the identity is disabled, or the changes have not propagated (~4 min).</td></tr>
+    <tr><td><code>signature does not verify against any known key</code></td><td>The issuer is not signing with a key published in its JWKS.</td></tr>
+    <tr><td>audience error</td><td>The token's <code>aud</code> is not the door URL the identity names.</td></tr>
+    <tr><td>lifetime error</td><td><code>exp &minus; iat</code> is longer than the identity's max token lifetime.</td></tr>
+    <tr><td>valid token accepted but the call is <code>403</code></td><td>The key has no grant on the app, or the tool is not allowed.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>Sources: the Privilege console API schema and our NHI setup notes. The console navigation for Federated Identities and the SPIFFE-direct-to-gateway behaviour are not yet verified on our tenant; fix this page with what the first real run shows. Never publish a screenshot that shows a token, a key, a tenant id or a person's name.</footer>
+</body>
+</html>
