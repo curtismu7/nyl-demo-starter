@@ -45,6 +45,7 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
 <section class="step">
   <h2>Deploy the worker agent and MCP server</h2>
   <p>From the lab repo, apply <code>k8s/deployment.yaml</code> to the namespace the gateway mesh can reach. This starts two services: <code>workeragentdemo</code> (the worker agent, A2A on <code>/a2a</code>) and <code>mcpdemo</code> (the MCP server, <code>/mcp</code>). Registering the apps before they run is allowed; discovery in step 3 needs the MCP backend up.</p>
+  <figure class="shot" data-file="28-01-k8s-services-running.png"><img src="img/28-01-k8s-services-running.png" alt="Worker and MCP services running" onerror="this.parentNode.classList.add('missing')"><figcaption>Both services Running in the cluster (pods or service list).</figcaption></figure>
 </section>
 
 <section class="step">
@@ -57,6 +58,8 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
     <tr><td>Path</td><td><code>/a2a</code></td><td><code>/mcp</code></td></tr>
     <tr><td>Auth Mode</td><td>None (never <i>Pass Agent Token</i>: it refuses key callers)</td><td>None</td></tr>
   </table>
+  <figure class="shot" data-file="28-02-add-remote-agent-app.png"><img src="img/28-02-add-remote-agent-app.png" alt="Add Application, Remote Agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The Remote Agent app as it appears in the console once created (shown here for <code>workeragentdemo2</code> on our tenant): type Remote Agent, frontend path <code>/a2a</code>, backend service URL. Namespace, mesh cluster and account are masked.</figcaption></figure>
+  <figure class="shot" data-file="28-03-add-mcp-app.png"><img src="img/28-03-add-mcp-app.png" alt="Add Application, MCP" onerror="this.parentNode.classList.add('missing')"><figcaption>An MCP app in the console (<code>a2a-mcp-tools</code> on our tenant): type MCP Server, its discovered tools and the gateway client entry. Account masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -68,21 +71,25 @@ worker      --(4) MCP tools/call, worker key---&gt;  gateway --&gt; MCP server</
     <li><b>Runtime Protection:</b> leave the defaults, or set the AI Guard thresholds you want to demonstrate.</li>
     <li><b>Review &amp; Create:</b> copy the key now and treat it as a secret.</li>
   </ul>
+  <figure class="shot" data-file="28-04-worker-agent-scopes-apps.png"><img src="img/28-04-worker-agent-scopes-apps.png" alt="Worker agent, scopes and apps" onerror="this.parentNode.classList.add('missing')"><figcaption>The worker agent's key (<code>worker-agent</code> on our tenant), Configuration tab: the MCP gateway policy, the MCP client entry and tool restrictions. The key itself is shown masked by the console. Account masked.</figcaption></figure>
 </section>
 
 <section class="step">
   <h2>Create the main agent</h2>
   <p>Same wizard, with a <b>different custodian</b>: scopes <code>llm</code> + <code>a2a</code>, a different allowed model, <b>Remote Agents &rarr; <code>workeragentdemo</code></b>. Selecting the app is the grant; saving auto-creates the policy for the custodian.</p>
-<p class="cap">The grant on our tenant: policy <code>MainAgentA2aMcpTools</code> has an <code>A2A</code> rule to the worker app (API view). The console's key page does not list it, although the gateway honours it; selecting the Remote Agent on the key in the wizard is the documented route.</p></section>
+  <figure class="shot" data-file="28-05-main-agent-remote-agent-grant.png"><img src="img/28-05-main-agent-remote-agent-grant.png" alt="Main agent with remote agent selected" onerror="this.parentNode.classList.add('missing')"><figcaption>The grant on our tenant: policy <code>MainAgentA2aMcpTools</code> has an <code>A2A</code> rule to the worker app (API view). The console's key page does not list it, although the gateway honours it; selecting the Remote Agent on the key in the wizard is the documented route.</figcaption></figure>
+</section>
 
 <section class="step">
   <h2>Create a third agent with no grant (the unauthorized one)</h2>
   <p>Create one more agent with scope <code>a2a</code> and <b>no Remote Agent selected</b>. It is the "unauthorized agent" for the refusal test. Use a different custodian again.</p>
+  <figure class="shot" data-file="28-06-unauthorized-agent.png"><img src="img/28-06-unauthorized-agent.png" alt="Agent with a2a scope and no remote agent" onerror="this.parentNode.classList.add('missing')"><figcaption>The same worker agent's A2A section: <b>&ldquo;A2A scope not granted &mdash; this key cannot send agent-to-agent requests.&rdquo;</b> This is the console's own statement of the unauthorized-agent case.</figcaption></figure>
 </section>
 
 <section class="step">
   <h2>Turn on agent-card discovery</h2>
   <p>On the <code>workeragentdemo</code> app, switch on <b>Discover A2A agent card</b> once the worker is running.</p>
+  <figure class="shot" data-file="28-07-discover-agent-card.png"><img src="img/28-07-discover-agent-card.png" alt="Discover A2A agent card enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>The Agent Card tab of <code>workeragentdemo2</code>: protocol version, binding, card URL and the last-discovered time show the gateway discovered the worker's A2A agent card. Namespace, gateway host and account masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -110,6 +117,8 @@ WORKER_PUBLIC_URL=https://&lt;gateway-host&gt;/workeragentdemo/a2a/jsonrpc</code
   -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"role":"user","messageId":"m1","parts":[{"kind":"text","text":"Hello"}]}}}'</code></pre>
     Expect <code>403</code>. Repeat with the main key: expect <code>200</code>.</li>
   </ol>
+  <figure class="shot" data-file="28-08-authorized-answer.png"><img src="img/28-08-authorized-answer.png" alt="Authorized A2A answer" onerror="this.parentNode.classList.add('missing')"><figcaption>The authorized question answered, with the A2A hop visible in the trace.</figcaption></figure>
+  <figure class="shot" data-file="28-09-unauthorized-403.png"><img src="img/28-09-unauthorized-403.png" alt="Unauthorized agent refused with 403" onerror="this.parentNode.classList.add('missing')"><figcaption>The unauthorized agent's call returning <code>403</code> beside the authorized <code>200</code>.</figcaption></figure>
 </section>
 
 <section>
@@ -134,6 +143,6 @@ WORKER_PUBLIC_URL=https://&lt;gateway-host&gt;/workeragentdemo/a2a/jsonrpc</code
 </section>
 
 </main>
-<footer>Sources: the lab README section "Set up on Privilege, in order", and the Privilege NHI setup notes. Steps follow those. Never publish a key, a tenant id or a person's name.</footer>
+<footer>Sources: the lab README section "Set up on Privilege, in order", and the Privilege NHI setup notes. Steps follow those; screenshots are added as each step is run on a tenant. Never publish a screenshot that shows a key, a tenant id or a person's name.</footer>
 </body>
 </html>

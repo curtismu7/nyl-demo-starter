@@ -46,6 +46,7 @@
     <tr><td>mismatched</td><td><code>https://spire.ai-demo.ping-devops.com</code></td><td><code>spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/other-agent</code> (a different registered SPIRE workload)</td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code></td><td>a key in the published JWKS</td></tr>
     <tr><td>untrusted</td><td><code>https://spire.ai-demo.ping-devops.com</code></td><td>the valid SPIFFE ID</td><td><code>priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka</code></td><td>a key <b>not</b> in the trusted JWKS</td></tr>
   </table>
+  <figure class="shot" data-file="30-01-issuer-jwks.png"><img src="img/30-01-issuer-jwks.png" alt="Issuer JWKS endpoint" onerror="this.parentNode.classList.add('missing')"><figcaption>The live public JWKS of the SPIRE issuer: HTTP 200 with one ES256 key (public key only). Rendered from the real response; the issuer host is masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -75,6 +76,7 @@
       "Subject": "spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/mcp-agent",
       "JwksURI": "https://ai-demo.ping-devops.com/spire/keys",
       "MaxTokenLifetimeSec": 3600 } } }</code></pre>
+  <figure class="shot" data-file="30-02-federated-identity-form.png"><img src="img/30-02-federated-identity-form.png" alt="Federated Identity form" onerror="this.parentNode.classList.add('missing')"><figcaption>The Federated Identity as shown in the console (<b>Directory &rarr; Federated Identities &rarr; spiffe-issuer-lab</b>, with a Register Identity button on the list page): platform SPIFFE / SPIRE (JWT-SVID), issuer, subject, JWKS URL (labelled &ldquo;Keys&rdquo;), max token lifetime and permissions. Hostnames, namespace, the generated audience and the account are masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -85,6 +87,7 @@
     <li><code>CustodianRef and UserRef name different principals</code>: clear the user reference if you cloned a key that had a human custodian.</li>
   </ul>
   <p>The gateway log should say <code>upserted workload key &lt;key&gt; issuer=&hellip; subject=&hellip;</code>. If it says <code>rebuilding 0 key(s)</code>, nothing is attached to the identity yet.</p>
+  <figure class="shot" data-file="30-03-agent-key-custodian-nhi.png"><img src="img/30-03-agent-key-custodian-nhi.png" alt="Agent key with the identity as custodian" onerror="this.parentNode.classList.add('missing')"><figcaption>The agent key <code>spiffe-lab</code>: its principal is the Federated identity <code>spiffe-issuer-lab</code>, scope <code>mcp</code>, policy enforced as the identity, authentication method Identity. Account masked.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -102,12 +105,15 @@
   -socketPath /run/spire/agent-sockets/socket \
   -audience priv-nhi-lfcf6fc343gsxmw4aw4cn2tu5rpkvqka
 # mismatched variant: add  -spiffeID spiffe://se-cluster.ping-devops/ns/ping-devops-cmuir/sa/other-agent</code></pre>
+  <figure class="shot" data-file="30-04-valid-svid-200.png"><img src="img/30-04-valid-svid-200.png" alt="Valid JWT-SVID accepted" onerror="this.parentNode.classList.add('missing')"><figcaption>The valid JWT-SVID getting <code>200</code> and a tool list. Decode and show the claims; hide the token.</figcaption></figure>
+  <figure class="shot" data-file="30-05-mismatched-401.png"><img src="img/30-05-mismatched-401.png" alt="Mismatched SPIFFE ID refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The mismatched SPIFFE ID getting <code>401</code>.</figcaption></figure>
+  <figure class="shot" data-file="30-06-untrusted-401.png"><img src="img/30-06-untrusted-401.png" alt="Untrusted issuer refused" onerror="this.parentNode.classList.add('missing')"><figcaption>The untrusted-issuer token getting <code>401</code>.</figcaption></figure>
 </section>
 
 <section>
   <h2>Evidence that it was real (captured 2026-11-19)</h2>
   <ul class="checks">
-    <li><b>Not found:</b> a per-call <code>workload token accepted</code> or <code>rejected</code> log line for key <code>spiffe-lab</code>. Searched all log files on the gateway pod on 2026-11-19, including calls made minutes earlier. Treat the HTTP statuses as the evidence.</li>
+    <li><b>Not found:</b> a per-call <code>workload token accepted</code> or <code>rejected</code> log line for key <code>spiffe-lab</code>. Searched all log files on the gateway pod on 2026-11-19, including calls made minutes earlier. Treat the HTTP statuses as the evidence, and capture a console screenshot of the key instead of a log screenshot unless the gateway is set to log these.</li>
     <li><b>Confirmed:</b> the identity <code>spiffe-issuer-lab</code>, key <code>spiffe-lab</code> and pacpolicy <code>spiffe-lab-aggregate-limited</code> exist in the console (created via the console API), not in a lab.</li>
     <li><b>Confirmed:</b> the three tokens were minted by SPIRE in the SE cluster; the gateway fetched the JWKS from the public URL <code>https://ai-demo.ping-devops.com/spire/keys</code>.</li>
   </ul>
@@ -126,6 +132,6 @@
 </section>
 
 </main>
-<footer>Sources: the Privilege console API schema, our NHI setup notes and the 2026-11-19 real run (SPIRE 1.7.2 in the SE cluster, gateway deploy agentless-mcpgw). Text evidence only &mdash; never publish a token, a key, a tenant id or a person's name.</footer>
+<footer>Sources: the Privilege console API schema, our NHI setup notes and the 2026-11-19 real run (SPIRE 1.7.2 in the SE cluster, gateway deploy agentless-mcpgw). Text evidence only &mdash; never publish a screenshot that shows a token, a key, a tenant id or a person's name.</footer>
 </body>
 </html>

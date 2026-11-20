@@ -46,14 +46,14 @@
     <tr><td>A gateway</td><td>Our tenant: <code>https://mcpgw.ai-demo.ping-devops.com</code>. Every app is served at <code>/&lt;app&gt;/...</code> on it.</td></tr>
     <tr><td>Patience for propagation</td><td>Changes to apps, policies and identities take about <b>4 minutes</b> to reach the gateway. Do not re-test sooner and call it a failure.</td></tr>
     <tr><td>The gateway log</td><td><code>/var/log/procyon/cyonproxy.log</code> in the gateway pod (and the newest rotated file). A bare <code>401</code> or <code>403</code> is only explained there.</td></tr>
-    <tr><td>Never publish</td><td>Agent keys, tokens, client secrets, tenant ids, a person's name.</td></tr>
+    <tr><td>Never publish</td><td>Agent keys, tokens, client secrets, tenant ids, a person's name in a screenshot.</td></tr>
   </table>
 </section>
 
 <!-- ============================ #28 ============================ -->
 <section class="step">
   <h2>#28 Agent-to-agent (A2A) through the gateway</h2>
-  <p>Detail: <a href="28-a2a.html">guide #28</a>. Lab: <code>privilege-a2a-anthropic-demo-LAB</code> (the two agents). This is the order that worked.</p>
+  <p>Detail and screenshots: <a href="28-a2a.html">guide #28</a>. Lab: <code>privilege-a2a-anthropic-demo-LAB</code> (the two agents). This is the order that worked.</p>
 
   <h3>Needed from other systems</h3>
   <table>
@@ -110,7 +110,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST "https://&lt;gateway&gt;/&lt;wo
 <!-- ============================ #29 ============================ -->
 <section class="step">
   <h2>#29 Human-in-the-loop approval</h2>
-  <p>Detail: <a href="29-human-approval.html">guide #29</a>. This is the one that needs a person with a phone.</p>
+  <p>Detail and screenshots: <a href="29-human-approval.html">guide #29</a>. This is the one that needs a person with a phone.</p>
 
   <h3>Needed from other systems</h3>
   <table>
