@@ -30,10 +30,6 @@ main { counter-reset:step; }
 .tag { display:inline-block; font-size:.72rem; font-weight:700; border-radius:10px; padding:2px 8px; margin-left:6px; vertical-align:middle; }
 .tag.unverified { background:#fdeaea; color:var(--red); }
 .tag.verified { background:#e8f4ec; color:#1f7a4d; }
-figure.shot { margin:12px 0; }
-figure.shot img { max-width:100%; border:1px solid var(--border); border-radius:6px; display:block; }
-figure.shot figcaption { color:var(--muted); font-size:.82rem; margin-top:4px; }
-figure.shot.missing img { display:none; }
-figure.shot.missing::before { content:"Screenshot to add: " attr(data-file); display:block; border:2px dashed var(--border); border-radius:6px; padding:22px 14px; text-align:center; color:var(--muted); font-size:.85rem; }
 .checks li { margin:4px 0; }
 footer { max-width:900px; margin:0 auto; padding:0 20px 40px; color:var(--muted); font-size:.82rem; }
+.cap { color:var(--muted); font-size:.85rem; margin:6px 0 10px; }

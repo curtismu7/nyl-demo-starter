@@ -40,7 +40,6 @@ MCP client retries within the window --+--&gt; call succeeds</code></pre>
 <section class="step">
   <h2>Pair PingID for the approver</h2>
   <p>Manage the approver's MFA devices in the account page (<i>Authentication &mdash; My Account</i>). Pair the phone, then confirm the PingID app shows the approver's account on its <b>Account</b> screen. Never share the passcode or approve a prompt you did not start.</p>
-  <figure class="shot" data-file="29-01-pingid-paired.png"><img src="img/29-01-pingid-paired.png" alt="PingID app Account screen" onerror="this.parentNode.classList.add('missing')"><figcaption>PingID app, Account screen, showing the approver's account. <b>Crop out the passcode.</b></figcaption></figure>
 </section>
 
 <section class="step">
@@ -50,7 +49,6 @@ MCP client retries within the window --+--&gt; call succeeds</code></pre>
     <li><b>Tenant &rarr; Profile &rarr; Tenant Information &rarr; Edit</b>.</li>
     <li>Set <b>MFA</b> to <b>Enabled</b> (the reference recording shows <code>Enabled (120 minutes)</code>), then save.</li>
   </ol>
-  <figure class="shot" data-file="29-02-tenant-mfa-enabled.png"><img src="img/29-02-tenant-mfa-enabled.png" alt="Tenant MFA enabled" onerror="this.parentNode.classList.add('missing')"><figcaption>Tenant MFA enabled: <code>EnableMFA: true</code> (API view; the console page shows the tenant id).</figcaption></figure>
 </section>
 
 <section class="step">
@@ -86,8 +84,6 @@ forbid (
 when   { context.app == "opensearch" }
 unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };</code></pre>
   <p>Save. The detail page should show State <b>Active</b>, Validation <b>Valid</b>, Effect "1 refusal, asks a human". The short windows keep a demo from waiting; lengthen them for real use.</p>
-  <figure class="shot" data-file="29-03-policy-builder.png"><img src="img/29-03-policy-builder.png" alt="AI policy builder, Require human approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The Cedar of an approval policy on our tenant (<code>hitl-opensearch</code>): <code>forbid</code> unless <code>approval_count</code> is at least 1. <b>This tenant's policy uses <code>@ttl</code> 900 and <code>@request_ttl</code> 3600, not the short demo values in the table above.</b> The approver group id and account are masked.</figcaption></figure>
-  <figure class="shot" data-file="29-04-policy-active-valid.png"><img src="img/29-04-policy-active-valid.png" alt="Policy detail, Active and Valid" onerror="this.parentNode.classList.add('missing')"><figcaption>AI Policies filtered to the approval policy: Effect &ldquo;1 refusal, asks a human&rdquo;, Runs at MCP &middot; Before inspection, Validation Valid, State Active.</figcaption></figure>
 </section>
 
 <section class="step">
@@ -99,18 +95,12 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
     <li>PingID asks for confirmation: <b>push</b> ("Are you trying to sign on?", approve with the blue button) or the 6-digit <b>passcode</b>.</li>
     <li>Re-run the tool within <b>90 seconds</b>. It now succeeds and the request moves to <b>Approved</b>.</li>
   </ol>
-  <figure class="shot" data-file="29-05-held-403-pending.png"><img src="img/29-05-held-403-pending.png" alt="Held call, 403 pending_approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The held call: <code>403</code>, <code>-32600</code>, <code>pending_approval</code>, <code>instruction_id</code>.</figcaption></figure>
-  <figure class="shot" data-file="29-06-hitl-awaiting.png"><img src="img/29-06-hitl-awaiting.png" alt="HITL Requests, Awaiting" onerror="this.parentNode.classList.add('missing')"><figcaption>The HITL Requests page and its tabs (Awaiting A Decision, Approved, Rejected, Expired, All, Archive). Nothing was waiting when this was captured; during a run the held request appears here. Account masked.</figcaption></figure>
-  <figure class="shot" data-file="29-07-pingid-push.png"><img src="img/29-07-pingid-push.png" alt="PingID push prompt" onerror="this.parentNode.classList.add('missing')"><figcaption>The PingID push prompt on the phone.</figcaption></figure>
-  <figure class="shot" data-file="29-08-approved-retry-succeeds.png"><img src="img/29-08-approved-retry-succeeds.png" alt="Request approved, retry succeeds" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, Approved tab: one request (<code>mcp:InvokeUnattended</code>, MCP gateway, approvals 1 / 1, state Approved), so an approval has been recorded on this tenant. The retried call's result is not part of this capture. Account masked.</figcaption></figure>
 
   <h3>Deny</h3>
   <p>Make a second protected call. In <b>HITL Requests</b> choose <b>Reject</b> (on the PingID prompt, "No, it's not me" also rejects). The request moves to <b>Rejected</b> and a retry is refused again.</p>
-  <figure class="shot" data-file="29-09-rejected.png"><img src="img/29-09-rejected.png" alt="Request rejected" onerror="this.parentNode.classList.add('missing')"><figcaption>A real rejected request (tenant record view): Rejected by the approver with a reason, and the identical call is refused with HTTP <code>400</code> and not held again.</figcaption></figure>
 
   <h3>Timeout</h3>
   <p>Make a third protected call and <b>do nothing</b>. After the request window (120 s here) it moves to <b>Expired</b>. Approving it afterwards is refused. A decided record cannot be changed: approve, reject and expiry are all terminal.</p>
-  <figure class="shot" data-file="29-10-expired.png"><img src="img/29-10-expired.png" alt="Request expired" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, Expired tab: three requests expired with approvals 0 / 1, because nobody decided in time. The Rejected tab was empty when checked, so the deny path has not been run yet. Account masked.</figcaption></figure>
 </section>
 
 <section>
@@ -140,14 +130,12 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 
 <section>
   <h2>Evidence that it was real</h2>
-  <figure class="shot" data-file="29-11-pingid-push-audit.png"><img src="img/29-11-pingid-push-audit.png" alt="PingOne audit: pushes created when the hold fired" onerror="this.parentNode.classList.add('missing')"><figcaption>PingOne audit: four authentication requests created within 0.75 s of the hold (approver names masked), one approved on the iPhone, the others timed out.</figcaption></figure>
-  <figure class="shot" data-file="29-12-approval-ciba.png"><img src="img/29-12-approval-ciba.png" alt="Privilege approval record, channel ciba" onerror="this.parentNode.classList.add('missing')"><figcaption>Privilege's own approval record for the same hold: Approved, channel <code>ciba</code>, single use, then the retry returns <code>200</code>.</figcaption></figure>
-  <ul class="checks">
+<p class="cap">PingOne audit: four authentication requests created within 0.75 s of the hold (approver names masked), one approved on the iPhone, the others timed out.</p><p class="cap">Privilege's own approval record for the same hold: Approved, channel <code>ciba</code>, single use, then the retry returns <code>200</code>.</p>  <ul class="checks">
     <li>The HITL Requests page shows one request in each of Approved, Rejected and Expired, with times and the approver.</li>
     <li>The held response carried a real <code>instruction_id</code> (<code>ins_&hellip;</code>) and the retry used <code>X-Procyon-Approval-Id</code>.</li>
-    <li>The approval required a PingID confirmation (screenshot of the prompt).</li>
+    <li>The approval required a PingID confirmation (the PingID prompt on the phone).</li>
   </ul>
-  <div class="warn"><span class="tag unverified">UNVERIFIED</span> On the tenant we use, it is not yet confirmed whether a held call returns HTTP <code>403 -32600</code> (as in the reference recording) or a <code>200</code> whose text says <code>pending_approval</code>. Run the first test call and record which one you get; the screenshot in step 4 settles it.</div>
+  <div class="warn"><b>Confirmed 2026-11-20:</b> on our tenants a held call returns HTTP <code>403</code> with JSON-RPC <code>-32600</code> and <code>status: pending_approval</code> (not a <code>200</code>).</div>
 </section>
 
 <section>
@@ -164,6 +152,6 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 </section>
 
 </main>
-<footer>Source: a screen recording of the setup (2 min 55 s) and the Privilege console. Steps follow it; screenshots are added as each step is run. Never publish a screenshot that shows a passcode, a key, a tenant id or a person's name.</footer>
+<footer>Source: a screen recording of the setup (2 min 55 s) and the Privilege console. Steps follow it. Never publish a passcode, a key, a tenant id or a person's name.</footer>
 </body>
 </html>

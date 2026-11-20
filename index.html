@@ -68,7 +68,7 @@
         <td><span class="badge owner">NOT YET RUN: needs the gateway route to the AWS agent</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
       <a href="https://github.com/curtismu7/privilege-a2a-anthropic-demo-LAB#set-up-on-privilege-in-order">&ldquo;Set up on Privilege, in order&rdquo;</a>
       &mdash; register <code>workeragentdemo</code> (Remote Agent) + <code>mcpdemo</code> (MCP) apps, create the two agents in the Agent Registry with different custodians, paste the agent keys into the lab <code>.env</code>.</p>
   </div>
@@ -99,7 +99,7 @@
         <td><span class="badge real">REAL RUN DONE 2026-11-20: PingID push approves a Privilege hold</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <a href="guides/29-human-approval.html"><b>Step-by-step guide with screenshots</b></a>
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/29-human-approval.html"><b>Step-by-step guide</b></a>
       &mdash; pair PingID for the approver, turn MFA on for the tenant, create the human-approval AI policy, test end to end (approve, reject, let one expire).</p>
   </div>
 
@@ -119,7 +119,7 @@
         <td><span class="badge partial">REAL GATEWAY, NOT SPIFFE</span></td>
       </tr>
     </table>
-    <p class="note"><b>Privilege setup docs:</b> <a href="guides/30-spiffe.html"><b>Step-by-step guide with screenshots</b></a>. In short: create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. <b>Real run done 2026-11-19:</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one and refused the negatives. The standalone lab remains the rehearsal mode.</p>
+    <p class="note"><b>Privilege setup docs:</b> <a href="guides/30-spiffe.html"><b>Step-by-step guide</b></a>. In short: create a Federated Identity (console object <code>NonHumanIdentity</code>, <code>/v1/nonhumanidentities</code>) with the SPIFFE issuer, JWKS URL, subject = <code>spiffe://&hellip;</code>, audience &mdash; skill <code>privilege-nhi-setup</code> covers the Privilege side. <b>Real run done 2026-11-19:</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one and refused the negatives. The standalone lab remains the rehearsal mode.</p>
   </div>
 
   <div class="card">
