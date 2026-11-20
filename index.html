@@ -67,6 +67,11 @@
         <td>set <code>AWS_AGENT_A2A_URL</code> in the lab <code>.env</code> to that app's gateway route, using the runtime ID plus <code>?accountId=</code> (not the full ARN, which the gateway mangles), then open the tab above</td>
         <td><span class="badge real">REAL RUN DONE 2026-11-20</span></td>
       </tr>
+      <tr>
+        <td>Token for the AWS agent: the one stored in the AWS agent's Remote Agent app is short-lived, so refresh it before a demo (presenter's machine only; viewers never need it)</td>
+        <td>run <code>node ~/Development/aws-agent-token.mjs --port 8650</code>, open <a href="http://127.0.0.1:8650/" target="_blank" rel="noopener noreferrer">127.0.0.1:8650</a>, choose PingFederate, pick the client, then paste the token into the app's Static Token field in the Privilege console. The helper reads the client secret from your local <code>.env</code>; it never leaves your machine</td>
+        <td><span class="badge owner">PRESENTER ONLY</span></td>
+      </tr>
     </table>
     <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
       <a href="https://github.com/curtismu7/privilege-a2a-anthropic-demo-LAB#set-up-on-privilege-in-order">&ldquo;Set up on Privilege, in order&rdquo;</a>
