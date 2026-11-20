@@ -15,7 +15,7 @@
 
 <section>
   <h2 style="margin-bottom:6px">What this proves</h2>
-  <div class="warn"><b>Status 2026-11-19:</b> the owner reports the PingID push is working. The held call (<code>403</code>, <code>pending_approval</code>) is captured here as real. A full approve, deny and expire run with PingID is not yet recorded in the tenant's approval history.</div>
+  <div class="warn" style="background:#e8f4ec;border-color:#1f7a4d"><b>REAL RUN &mdash; passed 2026-11-20.</b> On a Privilege tenant whose PingOne environment has PingID, a Cedar hold on a gateway door sent a <b>PingID push to the approver's phone</b>; approving it released the call (<code>403</code> <code>pending_approval</code>, then <code>200</code> after the retry). Privilege's own approval record shows channel <code>ciba</code>. Evidence below. PingID cannot be added to every PingOne environment: it has to be one that offers it.</div>
   <p>The test: <i>configure a protected action requiring approval; test approve, deny and timeout paths.</i> An MCP tool call that passes through the Privilege gateway is <b>held</b> by a policy. A person approves it and the approval is confirmed with <b>PingID</b> (push or passcode). The agent then retries and the call goes through.</p>
   <pre><code>MCP client --&gt; Privilege gateway --&gt; policy: "Require human approval"
                                        |  HTTP 403 pending_approval
@@ -118,7 +118,8 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
   <table>
     <tr><th>Gotcha</th><th>What to do</th></tr>
     <tr><td><b>Tenant MFA was off</b> (<code>EnableMFA: false</code>) and nothing could prompt PingID.</td><td>Turn it on first (the step above). It is tenant-wide: every admin and approval sign-in then asks for MFA, so check that your other demo accounts have a device.</td></tr>
-    <tr><td><b>A hold sends no notification</b> to anyone. The held request just sits under Awaiting.</td><td>The PingID push appears when the approver clicks <b>Approve</b> and the tenant steps up MFA. No push-only approval surface was found; the other channels are chat integrations.</td></tr>
+    <tr><td><b>With tenant MFA off, a hold sends no notification</b> and approval is a console click (channel <code>chat</code>).</td><td><b>Turn tenant MFA on</b> (Settings &rarr; Tenant &rarr; Profile). Then the hold itself fans out PingID pushes to the policy's approvers, and approving on the phone is recorded as channel <code>ciba</code>. You do <b>not</b> need to attach a PingID sign-on policy to the Privilege app.</td></tr>
+    <tr><td><b>All approvers share one phone</b> (as in our demo), so every approver gets a push and the first one you tap is the one recorded.</td><td>Name only the approver you want in the policy's <code>@approvers</code>, and tap that notification.</td></tr>
     <tr><td><b>The approver must be the signed-in console user.</b> One earlier request was approved by a different account (channel <code>chat</code>, no PingID).</td><td>Sign in to the console as the account whose phone you want to push to, and name that account in the policy's approvers. Afterwards check the request's events: the channel and assurance show how it was really approved.</td></tr>
     <tr><td><b>A rejected request is final.</b> The identical call is refused (HTTP <code>400</code>, "the same request will not be held again") instead of being held again.</td><td>To test the approve path after a reject, change the call (for example a different argument) so it is a new request.</td></tr>
     <tr><td><b>A policy created through the API is only a candidate</b> if its <code>State</code> is empty: the gateway logs <code>shadowing 1 candidate policies</code> and never holds anything.</td><td>Set <code>State: Active</code> (the console does this when you save from the UI).</td></tr>
@@ -139,6 +140,8 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
 
 <section>
   <h2>Evidence that it was real</h2>
+  <figure class="shot" data-file="29-11-pingid-push-audit.png"><img src="img/29-11-pingid-push-audit.png" alt="PingOne audit: pushes created when the hold fired" onerror="this.parentNode.classList.add('missing')"><figcaption>PingOne audit: four authentication requests created within 0.75 s of the hold (approver names masked), one approved on the iPhone, the others timed out.</figcaption></figure>
+  <figure class="shot" data-file="29-12-approval-ciba.png"><img src="img/29-12-approval-ciba.png" alt="Privilege approval record, channel ciba" onerror="this.parentNode.classList.add('missing')"><figcaption>Privilege's own approval record for the same hold: Approved, channel <code>ciba</code>, single use, then the retry returns <code>200</code>.</figcaption></figure>
   <ul class="checks">
     <li>The HITL Requests page shows one request in each of Approved, Rejected and Expired, with times and the approver.</li>
     <li>The held response carried a real <code>instruction_id</code> (<code>ins_&hellip;</code>) and the retry used <code>X-Procyon-Approval-Id</code>.</li>
