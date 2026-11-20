@@ -64,8 +64,8 @@
       </tr>
       <tr>
         <td>Real run: main agent calls the AWS agent through the real gateway (the Remote Agent app that fronts it is already set up in Privilege)</td>
-        <td>set <code>AWS_AGENT_A2A_URL</code> in the lab <code>.env</code> to that app's gateway route, then open the tab above</td>
-        <td><span class="badge owner">NOT YET RUN: needs the gateway route to the AWS agent</span></td>
+        <td>set <code>AWS_AGENT_A2A_URL</code> in the lab <code>.env</code> to that app's gateway route, using the runtime ID plus <code>?accountId=</code> (not the full ARN, which the gateway mangles), then open the tab above</td>
+        <td><span class="badge real">REAL RUN DONE 2026-11-20</span></td>
       </tr>
     </table>
     <p class="note"><b>Privilege setup docs:</b> <a href="guides/28-a2a.html"><b>Step-by-step guide with screenshots</b></a>; source: <code>privilege-a2a-anthropic-demo-LAB/README.md</code> &rarr; section
@@ -124,11 +124,11 @@
 
   <div class="card">
     <h2>Talking points</h2>
-    <p class="req" style="margin-bottom:8px"><b>The deliverable is a real run against a Privilege gateway for each of #28, #29 and #30.</b> The REHEARSAL ONLY rows above simulate Privilege on the presenter's own machine and do not count as the test. The rows marked NOT YET RUN (and the REAL RUN DONE rows) are the real runs, and the guides above are how to set them up.</p>
+    <p class="req" style="margin-bottom:8px"><b>The deliverable is a real run against a Privilege gateway for each of #28, #29 and #30.</b> The REHEARSAL ONLY rows above simulate Privilege on the presenter's own machine and do not count as the test. The rows marked REAL RUN DONE are the real runs, and the guides above are how to set them up.</p>
     <table>
       <tr><th>Item</th><th>Real run status</th></tr>
       <tr><td>#28 A2A</td><td><b>DONE &mdash; real run 2026-11-19.</b> Main agent delegated to the worker over A2A through the gateway, the worker read entitlements over MCP through the gateway, and a real answer came back (<code>200</code>). The same A2A call with the worker's key, which has no <code>a2a</code> scope, was refused (<code>403</code>, <code>key not scoped for a2a access</code>).</td></tr>
-      <tr><td>AWS agent A2A (joins #28)</td><td><b>NOT YET RUN.</b> The Custodian to AWS agent tab runs today against a local stand-in, so it is rehearsal only. <b>The real run needs the gateway route to the AWS agent:</b> set <code>AWS_AGENT_A2A_URL</code> to that route in the lab's local <code>.env</code> (the call carries the main agent's key, which must have the AWS agent's Remote Agent app selected), then recreate the lab container and open the tab.</td></tr>
+      <tr><td>AWS agent A2A (joins #28)</td><td><b>DONE &mdash; real run 2026-11-20.</b> The main agent called the agent running in AWS (Amazon Bedrock AgentCore) through the Privilege gateway over A2A (<code>message/send</code>), and the AWS agent's own reply came back (<code>200</code>). The Remote Agent app passes a PingFederate-issued token that the AgentCore runtime verifies, so the runtime trusts that issuer. The route in the lab's local <code>.env</code> is <code>AWS_AGENT_A2A_URL</code>, which carries the main agent's key (its grant selects the AWS agent's Remote Agent app). The token stored in the app is short-lived (about 1 hour), so it is refreshed before each demo. With the route blank the tab still runs against a local stand-in, which is rehearsal only.</td></tr>
       <tr><td>#29 approval</td><td>Gateway connection is real (tool list through a live door). <b>DONE &mdash; real run 2026-11-20.</b> A Cedar hold on a real gateway door sent a PingID push to the approver's phone (tenant MFA on, PingID-enabled environment); the approval is recorded by Privilege as channel <code>ciba</code> and the retry succeeded. On the earlier (old) tenant a real reject, which is final, and several expiries were also recorded through the same gateway holds. Evidence in guide #29.</td></tr>
       <tr><td>#30 SPIFFE</td><td><b>DONE &mdash; real run 2026-11-19.</b> SPIRE in the SE cluster minted real JWT-SVIDs; the gateway accepted the valid one (<code>200</code> + tool list) and refused the mismatched SPIFFE ID and the untrusted key (<code>401</code>). Evidence: the HTTP statuses, re-run 2026-11-19 (no per-call gateway log line was found for the SPIFFE key). The standalone lab remains the rehearsal mode.</td></tr>
     </table>
