@@ -40,7 +40,6 @@ MCP client retries within the window --+--&gt; call succeeds</code></pre>
 <section class="step">
   <h2>Pair PingID for the approver</h2>
   <p>Manage the approver's MFA devices in the account page (<i>Authentication &mdash; My Account</i>). Pair the phone, then confirm the PingID app shows the approver's account on its <b>Account</b> screen. Never share the passcode or approve a prompt you did not start.</p>
-  <figure class="shot" data-file="29-01-pingid-paired.png"><img src="img/29-01-pingid-paired.png" alt="PingID app Account screen" onerror="this.parentNode.classList.add('missing')"><figcaption>PingID app, Account screen, showing the approver's account. <b>Crop out the passcode.</b></figcaption></figure>
 </section>
 
 <section class="step">
@@ -101,7 +100,6 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
   </ol>
   <figure class="shot" data-file="29-05-held-403-pending.png"><img src="img/29-05-held-403-pending.png" alt="Held call, 403 pending_approval" onerror="this.parentNode.classList.add('missing')"><figcaption>The held call: <code>403</code>, <code>-32600</code>, <code>pending_approval</code>, <code>instruction_id</code>.</figcaption></figure>
   <figure class="shot" data-file="29-06-hitl-awaiting.png"><img src="img/29-06-hitl-awaiting.png" alt="HITL Requests, Awaiting" onerror="this.parentNode.classList.add('missing')"><figcaption>The HITL Requests page and its tabs (Awaiting A Decision, Approved, Rejected, Expired, All, Archive). Nothing was waiting when this was captured; during a run the held request appears here. Account masked.</figcaption></figure>
-  <figure class="shot" data-file="29-07-pingid-push.png"><img src="img/29-07-pingid-push.png" alt="PingID push prompt" onerror="this.parentNode.classList.add('missing')"><figcaption>The PingID push prompt on the phone.</figcaption></figure>
   <figure class="shot" data-file="29-08-approved-retry-succeeds.png"><img src="img/29-08-approved-retry-succeeds.png" alt="Request approved, retry succeeds" onerror="this.parentNode.classList.add('missing')"><figcaption>HITL Requests, Approved tab: one request (<code>mcp:InvokeUnattended</code>, MCP gateway, approvals 1 / 1, state Approved), so an approval has been recorded on this tenant. The retried call's result is not part of this capture. Account masked.</figcaption></figure>
 
   <h3>Deny</h3>
@@ -145,9 +143,9 @@ unless { context.has approval_count &amp;&amp; context.approval_count &gt;= 1 };
   <ul class="checks">
     <li>The HITL Requests page shows one request in each of Approved, Rejected and Expired, with times and the approver.</li>
     <li>The held response carried a real <code>instruction_id</code> (<code>ins_&hellip;</code>) and the retry used <code>X-Procyon-Approval-Id</code>.</li>
-    <li>The approval required a PingID confirmation (screenshot of the prompt).</li>
+    <li>The approval required a PingID confirmation (the PingID prompt on the phone).</li>
   </ul>
-  <div class="warn"><span class="tag unverified">UNVERIFIED</span> On the tenant we use, it is not yet confirmed whether a held call returns HTTP <code>403 -32600</code> (as in the reference recording) or a <code>200</code> whose text says <code>pending_approval</code>. Run the first test call and record which one you get; the screenshot in step 4 settles it.</div>
+  <div class="warn"><b>Confirmed 2026-11-20:</b> on our tenants a held call returns HTTP <code>403</code> with JSON-RPC <code>-32600</code> and <code>status: pending_approval</code> (not a <code>200</code>).</div>
 </section>
 
 <section>
