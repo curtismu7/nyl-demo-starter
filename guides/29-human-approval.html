@@ -15,7 +15,7 @@
 
 <section>
   <h2 style="margin-bottom:6px">What this proves</h2>
-  <div class="warn" style="background:#e8f4ec;border-color:#1f7a4d"><b>REAL RUN &mdash; passed 2026-11-20.</b> On a Privilege tenant whose PingOne environment has PingID, a Cedar hold on a gateway door sent a <b>PingID push to the approver's phone</b>; approving it released the call (<code>403</code> <code>pending_approval</code>, then <code>200</code> after the retry). Privilege's own approval record shows channel <code>ciba</code>. Evidence below. PingID cannot be added to every PingOne environment: it has to be one that offers it.</div>
+  <div class="warn ok"><b>REAL RUN &mdash; passed 2026-11-20.</b> On a Privilege tenant whose PingOne environment has PingID, a Cedar hold on a gateway door sent a <b>PingID push to the approver's phone</b>; approving it released the call (<code>403</code> <code>pending_approval</code>, then <code>200</code> after the retry). Privilege's own approval record shows channel <code>ciba</code>. Evidence below. PingID cannot be added to every PingOne environment: it has to be one that offers it.</div>
   <p>The test: <i>configure a protected action requiring approval; test approve, deny and timeout paths.</i> An MCP tool call that passes through the Privilege gateway is <b>held</b> by a policy. A person approves it and the approval is confirmed with <b>PingID</b> (push or passcode). The agent then retries and the call goes through.</p>
   <pre><code>MCP client --&gt; Privilege gateway --&gt; policy: "Require human approval"
                                        |  HTTP 403 pending_approval
